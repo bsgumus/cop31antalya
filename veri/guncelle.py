@@ -32,7 +32,7 @@ URL = "https://ytbsbilgi.teias.gov.tr/ytbsbilgi/frm_istatistikler.jsf"
 ICE_SOZLESMELER = "https://www.ice.com/marketdata/api/productguide/charting/contract-data?productId=4331&hubId=7979"
 ICE_GECMIS = "https://www.ice.com/marketdata/api/productguide/charting/data/historical?marketId={}&historicalSpan=1"
 ECB_KURLAR = "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist-90d.xml"
-UA = "Mozilla/5.0 (compatible; cop31antalya-sayac/1.0; +https://cop31antalya.com)"
+UA = "Mozilla/5.0 (compatible; cop31antalya-sayac/1.0; +https://cop31antalya.org)"
 TSI = timezone(timedelta(hours=3))  # Türkiye Eylül 2016'dan beri sabit UTC+3
 KOK = Path(__file__).resolve().parent.parent
 GUN_DIZINI = KOK / "data" / "gun"

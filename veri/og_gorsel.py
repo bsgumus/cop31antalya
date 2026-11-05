@@ -1,4 +1,4 @@
-# cop31antalya.com bağlantı önizlemesi (og:image), 1200×630. Karışım çubuğu 3 Kasım 2026'nın gerçek payları.
+# cop31antalya.org bağlantı önizlemesi (og:image), 1200×630. Karışım çubuğu 3 Kasım 2026'nın gerçek payları.
 # Pillow ve macOS'taki Helvetica gerekir; yalnız görseli değiştirmek isterseniz çalıştırın:
 #     python3 veri/og_gorsel.py .
 import json, sys
@@ -28,7 +28,7 @@ for i, (renk, v) in enumerate(parca):
     w = v / top * cw
     d.rounded_rectangle([x, 440, x + w, 462], radius=11 if i in (0, len(parca) - 1) else 0, fill=renk)
     x += w + 2
-d.text((P, 520), "cop31antalya.com", font=kalin(34), fill="#f0efec")
+d.text((P, 520), "cop31antalya.org", font=kalin(34), fill="#f0efec")
 d.text((P, 566), "Bağımsız veri platformu · Kaynak: TEİAŞ YTBS", font=ince(22), fill="#898781")
 img.save(f"{kok}/og.png", optimize=True)
 print(img.size)
