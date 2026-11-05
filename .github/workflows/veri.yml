@@ -1,0 +1,52 @@
+name: Veri güncelle ve yayınla
+
+on:
+  schedule:
+    - cron: "7,22,37,52 * * * *"  # UTC dakikaları (TSİ ile aynı); GitHub zamanlamayı 5-20 dk geciktirebilir
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: veri
+  cancel-in-progress: false
+
+jobs:
+  guncelle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: github-pages
+      url: ${{ steps.yayin.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # TEİAŞ'a ulaşılamazsa bu adım düşer ve GitHub e-posta atar; site son veriyle yayında kalır.
+      - name: TEİAŞ YTBS verisini çek
+        run: python3 veri/guncelle.py
+
+      - name: Veriyi depoya kaydet
+        if: ${{ !cancelled() }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -q -m "Veri: $(TZ=Europe/Istanbul date '+%Y-%m-%d %H:%M')"
+          git pull -q --rebase origin main
+          git push -q
+
+      - uses: actions/configure-pages@v5
+        if: ${{ !cancelled() }}
+      - uses: actions/upload-pages-artifact@v3
+        if: ${{ !cancelled() }}
+        with:
+          path: .
+      - id: yayin
+        if: ${{ !cancelled() }}
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,1692 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>COP31 Elektrik Sayacı</title>
+<meta name="description" content="COP31 boyunca Türkiye'nin elektriği canlı: rüzgâr ve güneşten üretim, yakılan kömür, ithal kömür faturası. TEİAŞ'ın 15 dakikalık verisi, lisanssız santraller dahil. Bağımsız veri platformu.">
+<meta property="og:title" content="COP31 Elektrik Sayacı">
+<meta property="og:description" content="COP31 boyunca Türkiye'nin elektriği canlı: rüzgâr ve güneş, yakılan kömür, CO₂ ve yakıt faturası. TEİAŞ'ın 15 dakikalık verisi.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://cop31antalya.com/">
+<meta property="og:image" content="https://cop31antalya.com/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="COP31 Elektrik Sayacı: Türkiye'nin elektriği canlı">
+<meta name="twitter:card" content="summary_large_image">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231a1a19'/%3E%3Cpath d='M18 4 8 18h7l-2 10 11-15h-7z' fill='%23eda100'/%3E%3C/svg%3E">
+<style>
+/* Renkler dataviz doğrulayıcısından geçti (açık ve koyu, komşu çiftler): yığın sırası alttan üste
+   diğer, kömür, hidro, doğalgaz, jeotermal+biyokütle, rüzgâr, güneş. Kömür ile doğalgaz renk körlüğünde
+   birbirine çok yakın, bu yüzden aralarında hidro var. Açık temada rüzgâr ve güneş 3:1'in altında:
+   tablo görünümü ve listedeki sayılar bunu karşılar. */
+:root {
+  color-scheme: light;
+  --page: #f9f9f7; --surface: #fcfcfb; --ink: #0b0b0b; --ink-2: #52514e; --muted: #898781;
+  --grid: #e1e0d9; --axis: #c3c2b7; --border: rgba(11,11,11,.10); --wash: rgba(11,11,11,.04);
+  --good: #0ca30c; --warning: #fab219;
+  --vurgu: #0f6e4c; --vurgu-zemin: rgba(15,110,76,.09);
+  --g-diger: #c3c2b7; --g-komur: #94601a; --g-hidro: #2a78d6; --g-dogalgaz: #eb6834;
+  --g-digeryen: #6250d6; --g-ruzgar: #1baf7a; --g-gunes: #eda100;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
+    --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,.10); --wash: rgba(255,255,255,.05);
+    --vurgu: #5ccf9f; --vurgu-zemin: rgba(92,207,159,.12);
+    --g-komur: #9c6a21; --g-hidro: #3987e5; --g-dogalgaz: #d95926;
+    --g-digeryen: #9085e9; --g-ruzgar: #199e70; --g-gunes: #c98500;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
+  --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,.10); --wash: rgba(255,255,255,.05);
+  --vurgu: #5ccf9f; --vurgu-zemin: rgba(92,207,159,.12);
+  --g-komur: #9c6a21; --g-hidro: #3987e5; --g-dogalgaz: #d95926;
+  --g-digeryen: #9085e9; --g-ruzgar: #199e70; --g-gunes: #c98500;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--page); color: var(--ink);
+  font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+a { color: var(--vurgu); text-underline-offset: 3px; text-decoration-color: color-mix(in srgb, currentColor 40%, transparent); }
+a:hover { text-decoration-color: currentColor; }
+:focus-visible { outline: 2px solid var(--vurgu); outline-offset: 2px; }
+button { font: inherit; color: inherit; }
+[hidden] { display: none !important; }
+
+.bant {
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  color: var(--ink-2); font-size: 13px; text-align: center; padding: 8px 16px;
+}
+main { max-width: 1120px; margin: 0 auto; padding: 24px 16px 48px; }
+
+.ust { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.durum { margin: 0; font-size: 14px; color: var(--ink-2); display: flex; align-items: center; gap: 8px; }
+.nokta { width: 8px; height: 8px; border-radius: 50%; background: var(--good); flex: none; }
+.nokta.canli { animation: nabiz 2s ease-in-out infinite; }
+@keyframes nabiz { 50% { opacity: .35; } }
+@media (prefers-reduced-motion: reduce) { .nokta.canli { animation: none; } }
+.uyari-ikon { width: 14px; height: 14px; flex: none; }
+.dil { display: flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.dil button { background: none; border: 0; padding: 4px 10px; font-size: 13px; cursor: pointer; color: var(--ink-2); }
+.dil button[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
+
+/* Manşet cümlesi: tek ana mesaj, rakam cümlenin içinde akar. */
+h1 { font-size: clamp(24px, 3.4vw, 40px); line-height: 1.2; margin: 16px 0 6px; font-weight: 600; letter-spacing: -.01em; max-width: 30ch; }
+.hero-sayi { font-size: 1.45em; font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums; /* tabular: akarken cümle titremesin */
+  text-decoration: underline; text-decoration-color: var(--g-komur); text-decoration-thickness: .08em; text-underline-offset: .14em; text-decoration-skip-ink: none; }
+.geri { margin: 0; font-size: 18px; color: var(--ink-2); }
+
+/* Üstte üç fiziksel büyüklük (elektrik, kömür, CO₂), altta iki fatura. */
+.kpis { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 16px; margin: 24px 0; }
+.kpi.fiz { grid-column: span 2; }
+.kpi.para { grid-column: span 3; }
+/* subgrid: aynı sıradaki kutuların etiket, değer ve alt satırları hizalı durur, etiket iki satıra kaysa bile */
+.kpi { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; min-width: 0;
+  display: grid; grid-row: span 4; grid-template-rows: subgrid; grid-template-columns: minmax(0, 1fr); row-gap: 0; }
+.kpi .esdeger { margin: 8px 0 0; padding-top: 8px; border-top: 1px solid var(--grid); color: var(--ink); font-size: 14px; }
+.kpi .etiket { margin: 0; color: var(--ink-2); font-size: 15px; }
+.kpi .etiket::before { content: ""; display: block; width: 28px; height: 4px; border-radius: 2px; margin-bottom: 12px; background: var(--anahtar, var(--axis)); }
+.kpi[data-anahtar="rg"] { --anahtar: linear-gradient(90deg, var(--g-ruzgar) 0 46%, transparent 46% 54%, var(--g-gunes) 54%); }
+.kpi[data-anahtar="komur"], .kpi[data-anahtar="ithal"] { --anahtar: var(--g-komur); }
+.kpi[data-anahtar="co2"] { --anahtar: var(--muted); }
+.kpi[data-anahtar="gaz"] { --anahtar: var(--g-dogalgaz); }
+.kpi .deger { margin: 6px 0 4px; font-size: clamp(30px, 3.6vw, 44px); font-weight: 650; line-height: 1.1; white-space: nowrap; }
+.kpi .birim { font-size: .5em; font-weight: 500; color: var(--ink-2); }
+.kpi .alt { margin: 0; color: var(--ink-2); font-size: 14px; }
+
+.ikili { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.7fr); gap: 16px; }
+.kart { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 16px; min-width: 0; }
+.kart h2 { font-size: 18px; margin: 0; font-weight: 650; }
+.kart .alt-baslik { margin: 2px 0 14px; color: var(--ink-2); font-size: 14px; }
+
+.manset { font-size: 22px; font-weight: 650; margin: 0 0 12px; line-height: 1.25; }
+.ince { display: flex; gap: 2px; height: 8px; border-radius: 4px; overflow: hidden; margin-bottom: 14px; }
+.ince span { display: block; height: 100%; }
+.liste { list-style: none; margin: 0; padding: 0; font-size: 15px; }
+.liste li { display: grid; grid-template-columns: 12px 1fr auto 52px; gap: 8px; align-items: baseline; padding: 5px 0; border-top: 1px solid var(--grid); }
+.liste li:first-child { border-top: 0; }
+.sw { width: 10px; height: 10px; border-radius: 2px; display: inline-block; align-self: center; }
+.liste .mw, .liste .pay { text-align: right; font-variant-numeric: tabular-nums; }
+.liste .pay { color: var(--ink-2); }
+.liste .ek { grid-column: 2 / -1; color: var(--ink-2); font-size: 13px; margin-top: -4px; }
+.tuketim { margin: 12px 0 0; color: var(--ink-2); font-size: 14px; }
+
+.lejant { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 0 0 8px; padding: 0; list-style: none; font-size: 13px; color: var(--ink-2); }
+.lejant li { display: flex; align-items: center; gap: 6px; }
+.grafik-kap { position: relative; }
+svg.grafik { display: block; width: 100%; height: auto; overflow: visible; font: 12px system-ui, -apple-system, "Segoe UI", sans-serif; }
+svg.grafik text { fill: var(--muted); font-variant-numeric: tabular-nums; }
+svg.grafik .sutun { transition: opacity .15s; }
+svg.grafik.odak .sutun:not(.aktif) { opacity: .45; }
+svg.grafik .hedef { fill: transparent; cursor: crosshair; outline: none; }
+svg.grafik .hedef:focus-visible { stroke: var(--ink); stroke-width: 1; }
+
+.ipucu {
+  position: fixed; z-index: 10; pointer-events: none; min-width: 190px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0,0,0,.12); padding: 10px 12px; font-size: 13px;
+}
+.ipucu .bas { color: var(--ink-2); margin-bottom: 6px; }
+.ipucu .satir { display: grid; grid-template-columns: 14px auto 1fr; gap: 8px; align-items: center; }
+.ipucu .anahtar { width: 12px; height: 2px; border-radius: 1px; }
+.ipucu .satir b { font-variant-numeric: tabular-nums; text-align: right; }
+.ipucu .satir span:last-child { color: var(--ink-2); }
+.ipucu .toplam { border-top: 1px solid var(--grid); margin-top: 6px; padding-top: 6px; }
+
+details.tablo { margin-top: 12px; }
+details summary { cursor: pointer; color: var(--ink-2); font-size: 14px; }
+.tablo-kap { overflow-x: auto; margin-top: 8px; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--grid); white-space: nowrap; font-variant-numeric: tabular-nums; }
+th { color: var(--ink-2); font-weight: 500; }
+th:first-child, td:first-child { text-align: left; }
+td .not { color: var(--ink-2); font-size: 12px; }
+
+.indir-satir { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin-top: 12px; }
+.indir-satir .kucuk { margin: 0; }
+body.ekran .indir-satir, body.widget .indir-satir { display: none; }
+body.widget .emisyon { display: none; }
+svg.grafik text.deger-etiket { fill: var(--ink-2); font-weight: 600; }
+.tema { margin: 10px 0 0; display: inline-block; padding: 4px 12px; border-radius: 14px; background: var(--vurgu-zemin); border: 1px solid color-mix(in srgb, var(--vurgu) 22%, transparent); color: var(--vurgu); font-size: 14px; font-weight: 500; }
+.atla { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 12px 0 0; font-size: 14px; }
+.atla a { font-weight: 500; text-decoration: none; }
+.atla a:hover { text-decoration: underline; }
+.olcer { display: flex; gap: 2px; height: 14px; border-radius: 7px; overflow: hidden; background: var(--grid); margin: 4px 0 10px; }
+.olcer span { display: block; height: 100%; }
+body.ekran .atla, body.widget .atla, body.widget .tema, body.ekran .hedef, body.widget .hedef { display: none; }
+body.ekran .tema { font-size: 1.7vh; margin-top: .8vh; }
+.kucuk { margin: 0 0 10px; color: var(--ink-2); font-size: 13px; }
+/* COP başladığından bu yana: gün gün tablosunun toplamı */
+.cop-toplam { margin-top: 16px; padding: 14px 16px; border-radius: 10px; background: var(--wash); border: 1px solid var(--border); }
+.cop-toplam h3 { font-size: 15px; margin: 0 0 2px; }
+.cop-toplam .kucuk { margin: 0; }
+.cop-toplam dl { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px 16px; margin: 12px 0 0; }
+.cop-toplam dt { color: var(--ink-2); font-size: 13px; }
+.cop-toplam dd { margin: 2px 0 0; font-size: 18px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.cop-toplam.bekliyor dd { color: var(--muted); font-weight: 500; }
+@media (max-width: 860px) { .cop-toplam dl { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 520px) { .cop-toplam dl { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.paylas-izgara { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.paylas-izgara h3 { font-size: 15px; margin: 0 0 6px; }
+.paylas-izgara p { margin: 0 0 10px; color: var(--ink-2); font-size: 14px; }
+.satir-kontrol { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+select, .dugme {
+  font: inherit; font-size: 14px; padding: 7px 12px; border-radius: 8px;
+  border: 1px solid var(--border); background: var(--surface); color: var(--ink);
+}
+.dugme { cursor: pointer; text-decoration: none; display: inline-block; }
+.dugme.ana { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+.dugme:hover { background: var(--wash); }
+.dugme.ana:hover { opacity: .9; background: var(--ink); }
+textarea {
+  width: 100%; font: 12px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--ink);
+  background: var(--page); border: 1px solid var(--border); border-radius: 8px; padding: 8px; resize: none;
+}
+#kart-onizleme { margin-top: 12px; }
+#kart-onizleme img { max-width: 100%; max-height: 70vh; width: auto; height: auto; border-radius: 8px; border: 1px solid var(--border); display: block; }
+.paylas-dugmeleri { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0 0 20px; }
+.paylas-dugmeleri .kucuk { margin: 0 4px 0 0; }
+#kart-onizleme a { margin-top: 8px; }
+
+.bilgi {
+  width: 18px; height: 18px; border-radius: 50%; border: 1px solid var(--axis); background: var(--surface);
+  color: var(--ink-2); font: 600 11px/16px system-ui, -apple-system, "Segoe UI", sans-serif; padding: 0;
+  cursor: pointer; vertical-align: 1px; margin-left: 2px;
+}
+.bilgi:hover, .bilgi:focus-visible { border-color: var(--ink-2); color: var(--ink); }
+.balon {
+  max-width: min(400px, calc(100vw - 32px)); padding: 18px 20px; border-radius: 12px; border: 1px solid var(--border);
+  background: var(--surface); color: var(--ink); box-shadow: 0 8px 32px rgba(0,0,0,.18); font-size: 15px; line-height: 1.55;
+}
+.balon::backdrop { background: rgba(0,0,0,.18); }
+.balon h3 { margin: 0 0 8px; font-size: 17px; }
+.balon p { margin: 0 0 8px; color: var(--ink-2); }
+.balon p:last-child { margin-bottom: 0; }
+.sss details { border-top: 1px solid var(--grid); padding: 12px 0; }
+.sss details:first-of-type { border-top: 0; }
+.sss details summary { cursor: pointer; font-weight: 600; font-size: 16px; }
+#sss-liste { margin-top: 8px; }
+.sss details p { margin: 8px 0 0; color: var(--ink-2); max-width: 75ch; }
+body.ekran .sss, body.widget .sss { display: none; }
+#d-tablo tr.secili td { background: var(--wash); font-weight: 600; }
+.sozluk dl { margin: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 32px; }
+.sozluk dt { font-weight: 650; }
+.sozluk dd { margin: 2px 0 0; color: var(--ink-2); font-size: 15px; }
+@media (max-width: 760px) { .sozluk dl { grid-template-columns: 1fr; } }
+body.ekran .bilgi, body.widget .bilgi { display: none; }
+body.ekran .sozluk, body.widget .sozluk { display: none; }
+.yontem summary, .sss > summary { font-size: 18px; font-weight: 650; color: var(--ink); }
+.yontem ul { margin: 12px 0 0; padding-left: 20px; color: var(--ink-2); }
+.yontem li { margin-bottom: 6px; }
+footer { color: var(--ink-2); font-size: 13px; margin-top: 8px; }
+footer p { margin: 4px 0; }
+
+@media (max-width: 860px) {
+  .ikili, .paylas-izgara { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+  .kpis { grid-template-columns: 1fr; gap: 12px; }
+  .kpi.fiz, .kpi.para { grid-column: auto; }
+  .kpi .deger { font-size: 34px; }
+  .kart { padding: 16px; }
+}
+
+/* Ekran modu: stant ve salon ekranları için tek sayfa, kaydırmasız */
+body.ekran { height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+body.ekran .bant { font-size: max(12px, 1.1vh); padding: .8vh 2vw; }
+body.ekran main { max-width: none; width: 100%; flex: 1; min-height: 0; display: grid; grid-template-rows: auto auto minmax(0, 1fr); gap: 2.4vh; padding: 2.4vh 3vw; }
+body.ekran h1 { font-size: 4vh; margin: .6vh 0 0; max-width: none; }
+body.ekran .geri { font-size: 2.2vh; }
+body.ekran .durum { font-size: 1.8vh; }
+body.ekran .kpis { margin: 0; gap: 1.2vw; grid-template-columns: repeat(5, minmax(0, 1fr)); }
+body.ekran .kpi { padding: 2.4vh 1.2vw; grid-column: auto; }
+body.ekran .kpi .etiket { font-size: 2.1vh; }
+body.ekran .kpi .etiket::before { width: 3.2vh; height: .45vh; margin-bottom: 1.2vh; }
+body.ekran .kpi .deger { font-size: min(6vh, 2.9vw); margin: 1vh 0; }
+body.ekran .kpi .alt { display: none; }
+body.ekran .kpi .esdeger { font-size: 1.9vh; margin-top: .8vh; padding-top: .8vh; }
+body.ekran .ikili { min-height: 0; }
+body.ekran .kart { margin: 0; min-height: 0; padding: 2vh 1.6vw; display: flex; flex-direction: column; overflow: hidden; }
+body.ekran .kart h2 { font-size: 2.3vh; }
+body.ekran .alt-baslik, body.ekran .lejant, body.ekran .liste, body.ekran .tuketim { font-size: 1.6vh; }
+body.ekran .alt-baslik { margin-bottom: 1.2vh; }
+body.ekran .manset { font-size: 2.8vh; margin-bottom: 1.2vh; }
+body.ekran .ince { margin-bottom: 1.2vh; }
+body.ekran .liste li { padding: .3vh 0; }
+body.ekran .tuketim { margin-top: .8vh; }
+body.ekran .grafik-kap { flex: 1; min-height: 0; }
+body.ekran svg.grafik { height: 100%; }
+body.ekran .gunes-gunu, body.ekran .gunler, body.ekran .paylas, body.ekran .yontem, body.ekran footer,
+body.ekran .emisyon, body.ekran .hedef, body.ekran .sss, body.ekran .sozluk, body.ekran .atla,
+body.ekran .dil, body.ekran details.tablo { display: none; }
+
+/* Gömülü küçük sürüm (iframe) */
+body.widget { background: var(--surface); }
+body.widget .bant, body.widget .geri, body.widget .ikili,
+body.widget .gunes-gunu, body.widget .gunler, body.widget .paylas, body.widget .yontem, body.widget footer, body.widget .dil { display: none; }
+.lejant .cizgi { width: 14px; height: 2px; border-radius: 1px; background: var(--ink); display: inline-block; }
+.lejant .kesik { width: 16px; height: 2px; display: inline-block; background: repeating-linear-gradient(90deg, currentColor 0 4px, transparent 4px 7px); }
+.lejant .daire { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+svg.grafik .imlec { stroke: var(--ink-2); stroke-width: 1; pointer-events: none; }
+body.widget main { padding: 12px; max-width: none; }
+body.widget h1 { font-size: clamp(16px, 3.6vw, 22px); margin: 6px 0 0; max-width: none; }
+body.widget .kpis { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin: 12px 0 10px; }
+body.widget .kpi { padding: 10px 12px; border-radius: 10px; grid-column: auto; }
+/* Gömme yüksekliği 520: orta genişlikte 3+2 (iki satır), dar ekranda 2+2+1 */
+@media (max-width: 640px) {
+  body.widget .kpis { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  body.widget .kpi.fiz { grid-column: span 2; }
+  body.widget .kpi.para { grid-column: span 3; }
+}
+@media (max-width: 480px) {
+  body.widget .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  body.widget .kpi.fiz, body.widget .kpi.para { grid-column: auto; }
+  body.widget .kpi:last-child { grid-column: span 2; }
+}
+body.widget .kpi .etiket { font-size: clamp(11px, 2.4vw, 14px); line-height: 1.3; }
+/* widget dar: çizgi etiketin önünde, aynı satırda; gömme yüksekliği (520) değişmesin */
+body.widget .kpi .etiket::before { display: inline-block; width: 14px; height: 3px; margin: 0 6px 0 0; vertical-align: .3em; }
+@media (max-width: 480px) { body.widget .kpi .etiket::before { display: none; } } /* dar widget'ta etiketler iki satıra kaymasın */
+body.widget .kpi .deger { font-size: clamp(16px, 4.6vw, 28px); }
+body.widget .kpi .alt, body.widget .kpi .esdeger { display: none; }
+.widget-alt { display: none; }
+body.widget .widget-alt { display: block; }
+.widget-alt .manset { font-size: 15px; margin-bottom: 8px; }
+.widget-alt p.kaynak { margin: 8px 0 0; font-size: 12px; color: var(--ink-2); }
+</style>
+</head>
+<body>
+<div class="bant" id="bant"></div>
+<main>
+  <header>
+    <div class="ust">
+      <p class="durum" id="durum"></p>
+      <div class="dil" role="group" aria-label="Dil / Language">
+        <button type="button" data-dil="tr">TR</button><button type="button" data-dil="en">EN</button>
+      </div>
+    </div>
+    <h1 id="baslik"></h1>
+    <p class="geri" id="geri"></p>
+    <p class="geri" id="canliya-don-p" hidden><a id="canliya-don" href="./"></a></p>
+    <p class="tema" id="tema" hidden></p>
+    <nav class="atla" id="atla" aria-label="Sayfa içi"></nav>
+  </header>
+
+  <section class="kpis" aria-live="off">
+    <div class="kpi fiz" data-anahtar="rg"><p class="etiket"><span id="k-rg-etiket"></span> <button type="button" class="bilgi" popovertarget="b-rg" aria-label="?">i</button></p><p class="deger"><span id="k-rg"></span> <span class="birim">MWh</span></p><p class="alt" id="k-rg-alt"></p><p class="esdeger" id="k-rg-esdeger"></p></div>
+    <div class="kpi fiz" data-anahtar="komur"><p class="etiket"><span id="k-komur-etiket"></span> <button type="button" class="bilgi" popovertarget="b-komur" aria-label="?">i</button></p><p class="deger"><span id="k-komur"></span> <span class="birim" id="k-komur-birim"></span></p><p class="alt" id="k-komur-alt"></p><p class="esdeger" id="k-komur-esdeger"></p></div>
+    <div class="kpi fiz" data-anahtar="co2"><p class="etiket"><span id="k-co2-etiket"></span> <button type="button" class="bilgi" popovertarget="b-co2" aria-label="?">i</button></p><p class="deger"><span id="k-co2"></span> <span class="birim" id="k-co2-birim"></span></p><p class="alt" id="k-co2-alt"></p><p class="esdeger" id="k-co2-esdeger"></p></div>
+    <div class="kpi para" data-anahtar="ithal"><p class="etiket"><span id="k-ithal-etiket"></span> <button type="button" class="bilgi" popovertarget="b-ithal" aria-label="?">i</button></p><p class="deger"><span id="k-ithal"></span></p><p class="alt" id="k-ithal-alt"></p><p class="esdeger" id="k-ithal-esdeger"></p></div>
+    <div class="kpi para" data-anahtar="gaz"><p class="etiket"><span id="k-gaz-etiket"></span> <button type="button" class="bilgi" popovertarget="b-gaz" aria-label="?">i</button></p><p class="deger"><span id="k-gaz"></span></p><p class="alt" id="k-gaz-alt"></p><p class="esdeger" id="k-gaz-esdeger"></p></div>
+  </section>
+  <div id="b-rg" class="balon" popover></div><div id="b-komur" class="balon" popover></div><div id="b-co2" class="balon" popover></div><div id="b-ithal" class="balon" popover></div><div id="b-gaz" class="balon" popover></div>
+
+  <div class="widget-alt">
+    <p class="manset" id="w-manset"></p>
+    <div class="ince" id="w-ince"></div>
+    <ul class="lejant" id="w-lejant"></ul>
+    <p class="kaynak" id="w-kaynak"></p>
+  </div>
+
+  <section class="kart gunes-gunu">
+    <h2 id="gg-baslik"></h2>
+    <p class="alt-baslik" id="gg-alt"></p>
+    <p class="manset" id="gg-manset"></p>
+    <ul class="lejant" id="gg-lejant"></ul>
+    <div class="grafik-kap" id="gg-kap"></div>
+    <div class="indir-satir"><button type="button" class="dugme png" data-grafik="gg"></button></div>
+  </section>
+
+  <div class="ikili">
+    <section class="kart simdi">
+      <h2 id="s-baslik"></h2>
+      <p class="alt-baslik" id="s-alt"></p>
+      <p class="manset" id="s-manset"></p>
+      <div class="ince" id="s-ince"></div>
+      <ul class="liste" id="s-liste"></ul>
+      <p class="tuketim" id="s-tuketim"></p>
+    </section>
+    <section class="kart">
+      <h2 id="g-baslik"></h2>
+      <p class="alt-baslik" id="g-alt"></p>
+      <ul class="lejant" id="g-lejant"></ul>
+      <div class="grafik-kap" id="g-kap"></div>
+      <div class="indir-satir"><button type="button" class="dugme png" data-grafik="g"></button></div>
+      <details class="tablo">
+        <summary id="g-tablo-ac"></summary>
+        <div class="tablo-kap"><table id="g-tablo"></table></div>
+      </details>
+    </section>
+  </div>
+
+  <section class="kart emisyon" id="emisyon">
+    <h2 id="em-baslik"></h2>
+    <p class="alt-baslik" id="em-alt"></p>
+    <p class="manset" id="em-manset"></p>
+    <ul class="lejant" id="em-lejant"></ul>
+    <div class="grafik-kap" id="em-kap"></div>
+    <p class="kucuk" id="em-not"></p>
+    <div class="indir-satir"><button type="button" class="dugme png" data-grafik="em"></button></div>
+    <details class="tablo">
+      <summary id="em-tablo-ac"></summary>
+      <div class="tablo-kap"><table id="em-tablo"></table></div>
+    </details>
+  </section>
+
+  <section class="kart hedef">
+    <h2 id="hd-baslik"></h2>
+    <p class="alt-baslik" id="hd-alt"></p>
+    <p class="manset" id="hd-manset"></p>
+    <div class="olcer" id="hd-olcer"></div>
+    <ul class="lejant" id="hd-lejant"></ul>
+    <p class="kucuk" id="hd-not"></p>
+  </section>
+
+  <section class="kart gunler" id="indir">
+    <h2 id="d-baslik"></h2>
+    <p class="alt-baslik" id="d-alt"></p>
+    <div class="tablo-kap"><table id="d-tablo"></table></div>
+    <div class="cop-toplam" id="cop-toplam">
+      <h3 id="ct-baslik"></h3>
+      <p class="kucuk" id="ct-alt"></p>
+      <dl id="ct-izgara"></dl>
+    </div>
+    <div class="indir-satir">
+      <button type="button" class="dugme" id="csv-gunluk"></button>
+      <button type="button" class="dugme" id="csv-dakika"></button>
+      <span class="kucuk" id="indir-not"></span>
+    </div>
+  </section>
+
+  <section class="kart paylas">
+    <h2 id="p-baslik"></h2>
+    <p class="alt-baslik" id="p-alt"></p>
+    <div class="paylas-dugmeleri" id="p-sosyal">
+      <span class="kucuk" id="p-sosyal-etiket"></span>
+      <a class="dugme" id="p-x" target="_blank" rel="noopener">X</a>
+      <a class="dugme" id="p-bsky" target="_blank" rel="noopener">Bluesky</a>
+      <a class="dugme" id="p-linkedin" target="_blank" rel="noopener">LinkedIn</a>
+      <a class="dugme" id="p-whatsapp" target="_blank" rel="noopener">WhatsApp</a>
+      <button type="button" class="dugme" id="p-baglanti"></button>
+      <button type="button" class="dugme" id="p-yerel" hidden></button>
+    </div>
+    <div class="paylas-izgara">
+      <div>
+        <h3 id="p-kart-baslik"></h3>
+        <p id="p-kart-aciklama"></p>
+        <div class="satir-kontrol">
+          <select id="p-gun" aria-label="Gün"></select>
+          <select id="p-bicim" aria-label="Biçim"></select>
+          <button type="button" class="dugme ana" id="p-olustur"></button>
+        </div>
+        <div id="kart-onizleme" hidden>
+          <img id="kart-img" alt="">
+          <a class="dugme" id="kart-indir" download></a>
+        </div>
+      </div>
+      <div>
+        <h3 id="p-gom-baslik"></h3>
+        <p id="p-gom-aciklama"></p>
+        <textarea id="p-kod" rows="4" readonly></textarea>
+        <div class="satir-kontrol" style="margin-top:8px">
+          <button type="button" class="dugme" id="p-kopyala"></button>
+          <a class="dugme" id="p-ekran" target="_blank" rel="noopener"></a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="kart sozluk">
+    <h2 id="sozluk-baslik"></h2>
+    <p class="alt-baslik" id="sozluk-alt"></p>
+    <dl id="sozluk"></dl>
+  </section>
+
+  <details class="kart sss" id="sss">
+    <summary id="sss-baslik"></summary>
+    <div id="sss-liste"></div>
+  </details>
+
+  <details class="kart yontem">
+    <summary id="y-baslik"></summary>
+    <ul id="y-liste"></ul>
+  </details>
+
+  <footer>
+    <p id="f-veri"></p>
+    <p id="f-kurum" hidden></p>
+  </footer>
+</main>
+<div class="ipucu" id="ipucu" role="tooltip" hidden></div>
+
+<script>
+"use strict";
+// Hazırlayan kurumun adı. Boş bırakılırsa altbilgide görünmez.
+const KURUM = "";
+
+// Yığın sırası, alttan üste. "alan": data/ozet.json'daki grup adları (veri/guncelle.py).
+const GRUP = [
+  { id: "diger", alan: ["diger", "nukleer"] },
+  { id: "komur", alan: ["linyit", "ithalkomur", "taskomur"] },
+  { id: "hidro", alan: ["hidro"] },
+  { id: "dogalgaz", alan: ["dogalgaz"] },
+  { id: "digeryen", alan: ["jeotermal", "biyokutle"] },
+  { id: "ruzgar", alan: ["ruzgar"] },
+  { id: "gunes", alan: ["gunes"] },
+];
+const USTTEN = [...GRUP].reverse();
+// Paylaşım kartı her zaman koyu zeminde çizilir; koyu tema adımları.
+const KART_RENK = { diger: "#c3c2b7", komur: "#9c6a21", hidro: "#3987e5", dogalgaz: "#d95926", digeryen: "#9085e9", ruzgar: "#199e70", gunes: "#c98500" };
+const SAAT = 3600e3, GUN = 864e5, TSI_FARK = 3 * SAAT;
+const COP_GUN_SAYISI = 12;
+// Gündelik karşılıklar
+const KAMYON_TON = 25;
+const KISI_KWH = 3360;   // kişi başı yıllık net elektrik tüketimi, TEİAŞ 2022
+const KISI_CO2_TON = 6.8; // kişi başı yıllık sera gazı (CO₂e), TÜİK 2024
+
+// Türkiye'nin net sera gazı emisyonu (arazi kullanımı ve ormancılık dahil) ve iklim hedefleri, milyon ton CO₂e.
+// Gerçekleşen: TÜİK. Eski referans senaryo 2012 bazlı (INDC ve birinci NDC buna göre), yeni referans 2018 bazlı
+// (NDC 3.0 buna göre; yalnız başlangıcı ve 2035 değeri var). NDC 3.0 yolu 2023'teki gerçekleşenden 2035 hedefine.
+const EMISYON = {
+  gercek: [[2015, 408.3], [2016, 431], [2017, 455.9], [2018, 458.8], [2019, 452.5], [2020, 474.2], [2021, 525.8], [2022, 503.7], [2023, 483], [2024, 517]],
+  eskiRef: [[2012, 430], [2015, 477], [2018, 572], [2020, 673], [2023, 843], [2025, 934], [2030, 1175]],
+  yeniRef: [[2018, 458.8], [2035, 1109]],
+  ndc3Yol: [[2023, 483], [2035, 643]],
+  hedef: [{ id: "indc", yil: 2030, deger: 928.25, ref: 1175 }, { id: "ndc1", yil: 2030, deger: 695, ref: 1175 }, { id: "ndc3", yil: 2035, deger: 643, ref: 1109 }],
+};
+
+const METIN = {
+  tr: {
+    bant: "Bağımsız veri platformu. Resmî COP31 sitesi değildir. Resmî site: ",
+    canli: "Canlı", gecikme: "Veri gecikmeli", sonVeri: "son veri {s} TSİ",
+    manset: {
+      onizleme: "Bugün Türkiye'de elektrik için {sayi} kömür yakıldı.",
+      cop: "COP31 başladığından beri Türkiye'de elektrik için {sayi} kömür yakıldı.",
+      bitti: "COP31 boyunca Türkiye'de elektrik için {sayi} kömür yakıldı.",
+      gun: "{tarih} günü Türkiye'de elektrik için {sayi} kömür yakıldı.",
+    },
+    geri: {
+      onizleme: "Her saniye yaklaşık {sn} ton · COP31'in başlamasına {g} gün {sa} saat",
+      cop: "Her saniye yaklaşık {sn} ton · COP31'in {n}. günü · Antalya, 9–20 Kasım",
+      bitti: "COP31 sona erdi · Antalya, 9–20 Kasım 2026",
+      gun: "Gün özeti{cop}",
+    },
+    kRg: "Rüzgâr ve güneşten üretilen elektrik", kRgAlt: "{gwh} GWh · üretimdeki payı {p}",
+    kKomur: "Elektrik için yakılan kömür", kKomurBirim: "ton", kKomurAlt: "bunun {t} tonu ithal kömür",
+    kCo2: "Elektrik üretiminden CO₂", kCo2Birim: "ton", kCo2Alt: "ortalama {g} g/kWh · kömürün payı {p}",
+    kIthal: "İthal kömüre ödenen", kIthalAlt: "ithal kömür {f} $/ton ile (2025 ortalaması)",
+    kGaz: "Doğalgaza ödenen (TTF fiyatıyla)", kGazAlt: "{m3} milyon m³ gaz · TTF şu an {ttf} €/MWh",
+    esRg: "≈ {n} kişilik bir şehrin bir yıllık elektriği", esKomur: "≈ {n} kamyon (25 tonluk)",
+    esCo2: "≈ {n} kişinin bir yıllık sera gazı salımı", esSaat: "Şu an saatte ≈ {x}",
+    sBaslik: "Son veri", sAlt: "{a}–{b} TSİ, 15 dakikalık ortalama",
+    geriGunCop: " · COP31'in {n}. günü", canliyaDon: "← Canlı sayaca dön", durumGun: "Arşiv · {tarih}", gunBaglanti: "Bu günün bağlantısı",
+    sBaslikGun: "Günün ortalama karışımı", sAltGun: "{tarih}, 24 saatlik ortalama", tuketimGun: "Ortalama karbon yoğunluğu {g} g CO₂/kWh",
+    ggAltGun: "{tarih}: tüketim ve bunun rüzgârla güneşten karşılanan kısmı, GW", gBaslikGun: "Saat saat üretim", gAltGun: "{tarih}, saatlik ortalama, GW",
+    sssBaslik: "Sık sorulan sorular",
+    sss: [
+      ["Bu rakamlar resmî mi?", "Üretim verisi TEİAŞ'ın resmî Yük Tevzi Bilgi Sistemi'nden geliyor. Kömür, CO₂ ve maliyet rakamları bu verinin üzerine yapılan hesaplamalar: resmî istatistik değil, yöntemi aşağıda açıkça yazılı tahminler."],
+      ["Rakamlar neden bir saat kadar geriden geliyor?", "TEİAŞ yeni 15 dakikalık veriyi önce eksik yayımlıyor, sonraki saatte tamamlıyor. Yanlış rakam göstermemek için site her aralığı 75 dakika bekletiyor; aradaki süreyi sayaçlar son hızla ilerleyerek dolduruyor."],
+      ["Sayaçlar neden saniye saniye artıyor?", "Son kesinleşmiş 15 dakikanın hızıyla ilerletiliyorlar. Saniyelik artış bir tahmin; toplamlar her 15 dakikada gerçek veriyle düzeltiliyor."],
+      ["Doğalgaza ödenen rakam gerçek fatura mı?", "Hayır. Yakılan gazın Avrupa piyasa fiyatıyla (TTF) değeri. Türkiye gazın büyük kısmını fiyatı açıklanmayan uzun vadeli sözleşmelerle alıyor; TTF, gazın bugünkü piyasa değerini gösteren en yakın açık göstergedir."],
+      ["Kömür tonajı nasıl bulunuyor?", "TEİAŞ'ın 2025'te santrallerde yakılan kömür miktarı aynı yılın kömürden elektrik üretimine bölünüyor: linyit için MWh başına yaklaşık 1,6 ton, ithal kömür için 0,37 ton. Bu katsayılar anlık üretimle çarpılıyor."],
+      ["CO₂ hesabı neye dayanıyor?", "Enerji ve Tabii Kaynaklar Bakanlığı'nın 2023 yılı yakıta göre elektrik üretim emisyon faktörlerine. Her yakıtın üretimi kendi faktörüyle çarpılıyor."],
+      ["Çatıdaki güneş panelleri dahil mi?", "Evet. TEİAŞ'ın verisi lisanssız (çatı ve küçük arazi) güneş santrallerinin üretimini de içeriyor."],
+      ["Veriyi kullanabilir miyim?", "Evet, kaynak göstererek. Günlük ve 15 dakikalık CSV dosyalarını ve grafikleri sayfadan alabilirsiniz. Her günün kendi bağlantısı var: tablodaki tarihe tıklayın."],
+      ["Bu siteyi kim yapıyor?", "Bağımsız bir veri projesi. UNFCCC, COP31 Başkanlığı ya da herhangi bir kurumla bağlantısı yok."],
+    ],
+    sManset: "Rüzgâr ve güneşin payı {p}", tuketim: "Tüketim {mw} MW · karbon yoğunluğu {g} g CO₂/kWh",
+    komurEk: "ithal {a} MW · yerli {b} MW",
+    gBaslik: "Son 24 saat", gAlt: "Saatlik ortalama üretim, GW", tabloAc: "Tablo olarak göster",
+    pngIndir: "Grafiği PNG olarak indir", csvGunluk: "Günlük veri (CSV)", csvDakika: "15 dakikalık veri (CSV)",
+    indirNot: "Kaynak göstererek serbestçe kullanabilirsiniz. 15 dakikalık dosya, tablodaki günlerin TEİAŞ ham verisini içerir.",
+    pngKaynak: "cop31antalya.com · Kaynak: TEİAŞ YTBS",
+    ggBaslik: "Güneş ve rüzgârın günü", ggAlt: "Son 24 saat: tüketim ve bunun rüzgârla güneşten karşılanan kısmı, GW",
+    ggManset: "Rüzgâr ve güneşin tüketimdeki en yüksek payı: {p} (saat {s}) · son 24 saatin ortalaması {o}",
+    ggMansetGun: "Rüzgâr ve güneşin tüketimdeki en yüksek payı: {p} (saat {s}) · günün ortalaması {o}",
+    emBaslik: "Türkiye'nin emisyon hedefleri", emAlt: "Net sera gazı emisyonu (arazi kullanımı ve ormancılık dahil), milyon ton CO₂ eşdeğeri",
+    emManset: "2035 hedefi: {hedef} milyon ton · {yil} net emisyonu: {son} milyon ton",
+    emSeri: { gercek: "Gerçekleşen", ref: "Referans senaryo (BaU)", hedef: "Hedefler" },
+    emAd: { gercek: "Gerçekleşen", eskiRef: "Eski referans senaryo", yeniRef: "Yeni referans senaryo", indc: "İlk hedef (INDC)", ndc1: "Birinci NDC", ndc3: "NDC 3.0 (ikinci NDC)" },
+    emKisa: { eskiRef: "BaU", yeniRef: "Yeni BaU", indc: "INDC", ndc1: "NDC", ndc3: "NDC 3.0" },
+    emAlti: "referansın {p} altı", emRefYili: "referans yılı", emBirim: "milyon ton", emYil: "Yıl",
+    emNot: "Hedefler referans senaryonun (BaU) ne kadar altında kalınacağıyla tanımlanıyor: INDC {indc}, birinci NDC {ndc1} (2030; 2012 bazlı eski referans {eski} Mt), NDC 3.0 {ndc3} (2035; 2018 bazlı yeni referans {yeni} Mt). NDC 3.0 hedefi, 2018 emisyonunun ({b2018} Mt) {artis} üstünde. Kaynak: TÜİK; Türkiye'nin UNFCCC'ye sunduğu INDC ve NDC'ler.",
+    emPngBaslik: "Türkiye'nin emisyon hedefleri · net, milyon ton CO₂e", emPngKaynak: "cop31antalya.com · Kaynak: TÜİK; Türkiye'nin INDC ve NDC'leri",
+    temaBugun: "Bugünün COP31 teması: {tema}", temaOnce: "COP31 enerji günü: 10 Kasım (Enerji ve Ulaştırma)", temaGun: "O günün COP31 teması: {tema}",
+    temalar: ["Gıda, Tarım ve Sağlık", "Enerji ve Ulaştırma", "Sıfır Atık · Liderler Zirvesi", "Dirençli Şehirler ve Yapılı Çevre · Liderler Zirvesi", "Finans ve Ticaret", "Çocuklar, Gençler, Eğitim ve Beceriler", "Antalya'da Bir Nefes", "Bilim, Sanayi ve Teknoloji", "Okyanuslar, Denizler, Doğa ve Arazi Kullanımı", "İnsani ve Sosyal Kalkınma", "İmece: Uygulamanın Güçlendirilmesi", "Nihai müzakereler"],
+    atla: [["#indir", "Veriyi indir"], ["#sss", "Sık sorulan sorular"]],
+    hdBaslik: "Türkiye'nin 2035 hedefi", hdAlt: "Rüzgâr ve güneş kurulu gücü, ETKB ({tarih} sonu)",
+    hdManset: "{yil}'e kadar hedeflenen {hedef} GW'ın {oran} kadarı kuruldu",
+    hdNot: "Kalan {kalan} GW için {yil} sonuna kadar yılda ortalama {hiz} GW eklenmesi gerekiyor. Türkiye 2053'te net sıfır emisyon hedefliyor.",
+    hdKalan: "Kalan",
+    kopyalandi: "Kopyalandı",
+    donemYazi: { onizleme: "Bugün (saat {s} itibarıyla)", cop: "COP31 başladığından bu yana (saat {s} itibarıyla)", bitti: "COP31 boyunca (9–20 Kasım)", gun: "{tarih} günü" },
+    paylasCumle: "{d} Türkiye'de elektrik üretmek için {komur} ton kömür yakıldı; bu yaklaşık {kamyon} kamyon yük demek.",
+    tuketimAd: "Tüketim", rgPayAd: "Rüzgâr + güneş payı",
+    saat: "Saat", toplam: "Toplam", kismi: "kısmi saat",
+    dBaslik: "Gün gün", dAltCop: "COP31 günleri", dAltOnce: "Son günler",
+    dSutun: ["Gün", "Üretim (GWh)", "Rüzgâr + güneş", "Yakılan kömür (ton)", "CO₂ (ton)", "İthal kömüre ödenen", "Doğalgaza ödenen"],
+    suruyor: "sürüyor", copGunu: "{n}. gün",
+    ctBaslik: "COP başladığından bu yana", ctBaslikBitti: "COP31 boyunca",
+    ctOnce: "COP31 {tarih}'da başlıyor. Bu kutu o günden itibaren COP boyunca biriken toplamları gösterecek.",
+    ctBekle: "İlk kesinleşmiş veri bekleniyor (TEİAŞ verisi yaklaşık 75 dakika geriden gelir).",
+    ctAlt: "{bas}'dan bu yana · son veri {son} TSİ", ctAltBitti: "{bas}–{bit}, kesinleşmiş TEİAŞ verisiyle",
+    pBaslik: "Paylaş ve kullan", pAlt: "Veriyi kaynak göstererek serbestçe kullanabilirsiniz.",
+    pKartBaslik: "Günün kartı", pKartAciklama: "Sosyal medya için hazır görsel. Gün sürüyorsa o ana kadarki veriyi gösterir.",
+    bicim: { yatay: "Yatay · X, LinkedIn", kare: "Kare · Instagram gönderisi", hikaye: "Dikey · Instagram, WhatsApp hikâyesi" },
+    sosyalEtiket: "Sayfayı paylaş:", baglantiKopyala: "Bağlantıyı kopyala", yerelPaylas: "Paylaş…",
+    pOlustur: "Kartı oluştur", pIndir: "PNG olarak indir",
+    pGomBaslik: "Sitene ekle", pGomAciklama: "Haber sitenizin COP31 sayfasına canlı sayacı bu kodla ekleyebilirsiniz.",
+    pKopyala: "Kodu kopyala", pKopyalandi: "Kopyalandı", pEkran: "Ekran modu (stantlar için)",
+    yBaslik: "Veri ve yöntem",
+    yontem: [
+      "Veri: TEİAŞ Yük Tevzi Bilgi Sistemi'nin (YTBS) kaynak bazında 15 dakikalık üretim verisi; lisanssız santraller dahil. TEİAŞ yeni aralığı önce eksik yayımlayıp sonraki saatte tamamladığı için site 75 dakikadan yeni aralıkları beklemeye alıyor; sayfa 15 dakikada bir güncelleniyor.",
+      "Sayaçlar son kesinleşmiş 15 dakikanın hızıyla saniye saniye ilerletilir ve her yeni veriyle düzeltilir. Veri gelmezse en fazla 3 saat ileri gider, sonra durur.",
+      "Yakılan kömür: TEİAŞ'ın 2025 yakıt tüketimi ile üretimi oranlanarak bulundu. Linyit için MWh başına {lin} ton; ithal kömür, taş kömürü ve asfaltit için {bir} ton (TEİAŞ bu üçünü tek kalemde veriyor).",
+      "İthal kömür faturası: ithal kömür tonu × {f} $/ton (2025 ortalaması).",
+      "Karşılıklar: kamyon başına 25 ton kömür; kişi başı yıllık net elektrik tüketimi 3.360 kWh (TEİAŞ, 2022); kişi başı yıllık sera gazı salımı 6,8 ton CO₂ eşdeğeri (TÜİK, 2024). Yuvarlanmış, yaklaşık değerlerdir.",
+      "Doğalgaz: TEİAŞ'ın 2025 yakıt tüketimi gaz santrallerinin üretimine bölündüğünde elektrik MWh'i başına {m3} m³ gaz çıkıyor (kojenerasyondaki ısı üretimi dahil). Gazın enerjisi BOTAŞ'ın üst ısıl değeriyle (9.155 kcal/m³) hesaplandı.",
+      "Doğalgaza ödenen: her gün, o gün yakılan gaz × TTF fiyatı × ECB EUR/USD referans kuru. TTF fiyatı, ICE Endex Dutch TTF ön ay vadeli kontratının ice.com'daki gecikmeli fiyatı (şu an {vade} vadesi, {ttf} €/MWh); kur {kur}. Bugün elektrik MWh'i başına yaklaşık {gazMwh} $. Bu, yakılan gazın Avrupa piyasa fiyatıyla değeri; BOTAŞ'ın uzun vadeli sözleşme fiyatları bundan farklı.",
+      "CO₂: ETKB'nin 2023 yılı yakıta göre elektrik üretim emisyon faktörleri, ton CO₂/MWh: {co2Liste}. Hidro, rüzgâr, güneş, jeotermal, biyokütle ve nükleer sıfır sayılır; nafta ve LPG için motorin faktörü kullanılır.",
+      "Gruplar: hidro = barajlı + akarsu; doğalgaz = doğalgaz + LNG; kömür = linyit + ithal kömür + taş kömürü + asfaltit; diğer = nükleer, fuel-oil, motorin, nafta, LPG ve atık ısı.",
+      "Emisyon hedefleri grafiği: gerçekleşen net emisyon (arazi kullanımı ve ormancılık dahil) TÜİK sera gazı envanterinden; referans senaryolar ve hedefler Türkiye'nin INDC, birinci NDC ve NDC 3.0 belgelerinden. Yeni referans senaryonun yalnız 2018 başlangıcı ve 2035 değeri gösteriliyor.",
+      "Bu site bağımsızdır; UNFCCC ya da COP31 Başkanlığı ile bağlantısı yoktur.",
+    ],
+    fVeri: "Kaynaklar: TEİAŞ YTBS, ICE Endex (TTF), ECB, ETKB (emisyon faktörleri) · son veri {s} TSİ · sayfa {g} TSİ'de güncellendi",
+    fKurum: "Hazırlayan: {k}",
+    wKaynak: "Kaynak: TEİAŞ · son veri {s} TSİ · ",
+    grup: { gunes: "Güneş", ruzgar: "Rüzgâr", digeryen: "Jeotermal ve biyokütle", dogalgaz: "Doğalgaz", hidro: "Hidro", komur: "Kömür", diger: "Diğer" },
+    kart: { ust: "Türkiye'de elektrik", rg: "rüzgâr ve güneşin üretimdeki payı", komur: "ton kömür yakıldı", kamyon: "≈ {n} kamyon", co2: "ton CO₂ salındı", ithal: "ithal kömüre ödendi", gaz: "doğalgaza ödendi (TTF fiyatıyla)", milyon: "{x} milyon $", araligi: "00:00–{s} arası", alt: "TEİAŞ YTBS · TTF: ICE Endex · emisyon: ETKB 2023 · bağımsız veri platformu" },
+    yakit: { linyit: "linyit", taskomur: "taş kömürü", asfaltitkomur: "asfaltit", ithalkomur: "ithal kömür", dogalgaz: "doğalgaz", fueloil: "fuel-oil", motorin: "motorin" },
+    bilgiEtiket: "Bu ne demek?",
+    bilgi: {
+      rg: ["Rüzgâr ve güneşten üretilen elektrik", "Rüzgâr türbinleri ve güneş panellerinin bu dönemde ürettiği elektrik. Bu santraller yakıt yakmaz: ithalat faturası da, bacadan CO₂ da yoktur.", "Payları ne kadar yüksekse aynı elektrik için o kadar az kömür ve gaz yakılır."],
+      komur: ["Elektrik için yakılan kömür", "Termik santrallerin elektrik üretmek için yaktığı linyit, ithal kömür, taş kömürü ve asfaltit.", "TEİAŞ'ın 2025 verisine göre her MWh elektrik için ortalama ne kadar kömür yandığı hesaplanıp anlık üretimle çarpılıyor. Kömür, Türkiye'de elektrik kaynaklı CO₂'nin en büyük kaynağı."],
+      co2: ["Elektrik üretiminden CO₂", "Santrallerin elektrik üretirken saldığı karbondioksit; iklim değişikliğine yol açan sera gazlarının başında gelir.", "Her yakıt için ETKB'nin resmî emisyon faktörü kullanılıyor: örneğin linyit MWh başına 1,1 ton, doğalgaz 0,4 ton CO₂ salıyor."],
+      ithal: ["İthal kömüre ödenen", "Elektrik için yakılan ithal kömürün yaklaşık bedeli (ton başına 94 $, 2025 ortalaması).", "Bu para yurt dışına döviz olarak gider. Yerli rüzgâr ve güneş üretimi bu ithalatı azaltır."],
+      gaz: ["Doğalgaza ödenen (TTF fiyatıyla)", "Gaz santrallerinde yakılan gazın Avrupa piyasa fiyatıyla (TTF) değeri. Türkiye gazının büyük kısmını ithal ediyor.", "BOTAŞ'ın uzun vadeli sözleşme fiyatları farklı olduğu için bu bir tahmindir; yine de gazın bugünkü piyasa değerini gösterir."],
+    },
+    sozlukBaslik: "Sözlük", sozlukAlt: "Sayfada geçen terimler, kısaca.",
+    sozluk: [
+      ["kWh, MWh, GWh", "Elektrik enerjisinin birimleri. Faturalarda gördüğünüz kWh'dir; 1 MWh = 1.000 kWh, 1 GWh = 1.000 MWh."],
+      ["MW ve MWh farkı", "MW anlık gücü, MWh bir saatte üretilen enerjiyi gösterir. 1.000 MW'lık bir santral bir saatte 1.000 MWh üretir."],
+      ["Lisanssız üretim", "Çatı ve küçük arazi güneş santralleri gibi lisans almadan kurulan tesislerin üretimi. Türkiye'de güneşin önemli bir kısmı lisanssızdır; bu sitedeki veride dahildir."],
+      ["Linyit ve ithal kömür", "Linyit Türkiye'de çıkarılan düşük kalorili kömürdür. İthal kömür çoğunlukla deniz yoluyla getirilir ve dövizle ödenir."],
+      ["TTF", "Hollanda'daki doğalgaz ticaret noktası. Avrupa'daki gaz fiyatının göstergesidir; fiyatı €/MWh cinsindendir."],
+      ["Emisyon faktörü", "Bir MWh elektrik üretilirken yakıta göre salınan CO₂ miktarı. Bu sitede ETKB'nin 2023 değerleri kullanılıyor."],
+      ["Karbon yoğunluğu", "Üretilen her kWh elektrik başına ortalama CO₂ (gram). Kömür arttıkça yükselir, güneş ve rüzgâr arttıkça düşer."],
+      ["YTBS", "TEİAŞ'ın Yük Tevzi Bilgi Sistemi. Türkiye elektrik şebekesinin 15 dakikalık üretim ve tüketim verisini yayımlar."],
+      ["COP31", "BM İklim Değişikliği Çerçeve Sözleşmesi taraflarının 31. konferansı; 9–20 Kasım 2026'da Antalya'da."],
+    ],
+  },
+  en: {
+    bant: "Independent data platform. Not the official COP31 website. Official site: ",
+    canli: "Live", gecikme: "Data delayed", sonVeri: "latest data {s} TRT",
+    manset: {
+      onizleme: "Today, {sayi} of coal have been burned for electricity in Türkiye.",
+      cop: "Since COP31 began, {sayi} of coal have been burned for electricity in Türkiye.",
+      bitti: "During COP31, {sayi} of coal were burned for electricity in Türkiye.",
+      gun: "On {tarih}, {sayi} of coal were burned for electricity in Türkiye.",
+    },
+    geri: {
+      onizleme: "About {sn} tonnes every second · COP31 starts in {g} days {sa} hours",
+      cop: "About {sn} tonnes every second · Day {n} of COP31 · Antalya, 9–20 November",
+      bitti: "COP31 has ended · Antalya, 9–20 November 2026",
+      gun: "Daily summary{cop}",
+    },
+    kRg: "Electricity from wind and solar", kRgAlt: "{gwh} GWh · {p} of generation",
+    kKomur: "Coal burned for power", kKomurBirim: "tonnes", kKomurAlt: "{t} tonnes of it imported coal",
+    kCo2: "CO₂ from power generation", kCo2Birim: "tonnes", kCo2Alt: "average {g} g/kWh · {p} from coal",
+    kIthal: "Paid for imported coal", kIthalAlt: "imported coal at ${f}/tonne (2025 average)",
+    kGaz: "Paid for gas (at TTF prices)", kGazAlt: "{m3} million m³ of gas · TTF now €{ttf}/MWh",
+    esRg: "≈ a year of electricity for a city of {n} people", esKomur: "≈ {n} truckloads (25 tonnes each)",
+    esCo2: "≈ a year of greenhouse gas emissions from {n} people", esSaat: "Right now ≈ {x} an hour",
+    sBaslik: "Latest data", sAlt: "{a}–{b} TRT, 15-minute average",
+    geriGunCop: " · Day {n} of COP31", canliyaDon: "← Back to the live counter", durumGun: "Archive · {tarih}", gunBaglanti: "Link to this day",
+    sBaslikGun: "Average mix of the day", sAltGun: "{tarih}, 24-hour average", tuketimGun: "Average carbon intensity {g} g CO₂/kWh",
+    ggAltGun: "{tarih}: demand and the part of it met by wind and solar, GW", gBaslikGun: "Generation hour by hour", gAltGun: "{tarih}, hourly average, GW",
+    sssBaslik: "Frequently asked questions",
+    sss: [
+      ["Are these official figures?", "Generation data comes from TEİAŞ's official Load Dispatch Information System. The coal, CO₂ and cost figures are calculations on top of that data: estimates with the method written out below, not official statistics."],
+      ["Why are the figures about an hour behind?", "TEİAŞ first publishes each new 15-minute interval incomplete and fills it in over the next hour. To avoid showing wrong numbers the site waits 75 minutes per interval; the counters fill the gap by advancing at the latest rate."],
+      ["Why do the counters tick every second?", "They advance at the rate of the latest settled 15 minutes. The per-second increase is an estimate; totals are corrected with real data every 15 minutes."],
+      ["Is the gas figure an actual bill?", "No. It values the gas burned at the European market price (TTF). Türkiye buys most of its gas under long-term contracts whose prices are not public; TTF is the closest open indicator of the gas's market value today."],
+      ["How is coal tonnage worked out?", "TEİAŞ's 2025 coal consumption in power plants is divided by the same year's coal-fired generation: about 1.6 tonnes per MWh for lignite and 0.37 tonnes for imported coal. These factors are multiplied by live generation."],
+      ["What is the CO₂ calculation based on?", "The Ministry of Energy and Natural Resources' 2023 emission factors for electricity generation by fuel. Each fuel's generation is multiplied by its own factor."],
+      ["Are rooftop solar panels included?", "Yes. TEİAŞ data includes generation from unlicensed (rooftop and small ground-mounted) solar plants."],
+      ["Can I use the data?", "Yes, with attribution. You can take the daily and 15-minute CSV files and the charts from the page. Every day has its own link: click a date in the table."],
+      ["Who makes this site?", "An independent data project, not affiliated with the UNFCCC, the COP31 Presidency or any organisation."],
+    ],
+    sManset: "Wind and solar share {p}", tuketim: "Demand {mw} MW · carbon intensity {g} g CO₂/kWh",
+    komurEk: "imported {a} MW · domestic {b} MW",
+    gBaslik: "Last 24 hours", gAlt: "Hourly average generation, GW", tabloAc: "Show as a table",
+    pngIndir: "Download chart as PNG", csvGunluk: "Daily data (CSV)", csvDakika: "15-minute data (CSV)",
+    indirNot: "Free to use with attribution. The 15-minute file holds TEİAŞ raw data for the days in the table.",
+    pngKaynak: "cop31antalya.com · Source: TEİAŞ YTBS",
+    ggBaslik: "The day of sun and wind", ggAlt: "Last 24 hours: demand and the part of it met by wind and solar, GW",
+    ggManset: "Highest wind and solar share of demand: {p} (at {s}) · {o} on average over the last 24 hours",
+    ggMansetGun: "Highest wind and solar share of demand: {p} (at {s}) · {o} on average that day",
+    emBaslik: "Türkiye's emission targets", emAlt: "Net greenhouse gas emissions (including land use and forestry), million tonnes CO₂ equivalent",
+    emManset: "2035 target: {hedef} million tonnes · {yil} net emissions: {son} million tonnes",
+    emSeri: { gercek: "Actual", ref: "Reference scenario (BaU)", hedef: "Targets" },
+    emAd: { gercek: "Actual", eskiRef: "Old reference scenario", yeniRef: "New reference scenario", indc: "First target (INDC)", ndc1: "First NDC", ndc3: "NDC 3.0 (second NDC)" },
+    emKisa: { eskiRef: "BaU", yeniRef: "New BaU", indc: "INDC", ndc1: "NDC", ndc3: "NDC 3.0" },
+    emAlti: "{p} below reference", emRefYili: "reference year", emBirim: "Mt", emYil: "Year",
+    emNot: "Targets are set as cuts below a reference scenario (BaU): INDC {indc}, first NDC {ndc1} (2030; old 2012-based reference {eski} Mt), NDC 3.0 {ndc3} (2035; new 2018-based reference {yeni} Mt). The NDC 3.0 target is {artis} above 2018 emissions ({b2018} Mt). Sources: TÜİK; Türkiye's INDC and NDCs submitted to the UNFCCC.",
+    emPngBaslik: "Türkiye's emission targets · net, million tonnes CO₂e", emPngKaynak: "cop31antalya.com · Sources: TÜİK; Türkiye's INDC and NDCs",
+    temaBugun: "Today's COP31 theme: {tema}", temaOnce: "COP31 energy day: 10 November (Energy and Transport)", temaGun: "COP31 theme that day: {tema}",
+    temalar: ["Food, Agriculture and Health", "Energy and Transport", "Zero Waste · Leaders' Summit", "Resilient Cities and Built Environment · Leaders' Summit", "Finance and Trade", "Children, Youth, Education and Skills", "A Breath in Antalya", "Science, Industry and Technology", "Oceans, Seas, Nature and Land Use", "Human and Social Development", "Imece: Strengthening Implementation", "Final negotiations"],
+    atla: [["#indir", "Download data"], ["#sss", "FAQ"]],
+    hdBaslik: "Türkiye's 2035 target", hdAlt: "Installed wind and solar capacity, ETKB (end of {tarih})",
+    hdManset: "{oran} of the {hedef} GW targeted by {yil} is installed",
+    hdNot: "The remaining {kalan} GW needs about {hiz} GW a year on average until the end of {yil}. Türkiye targets net zero emissions by 2053.",
+    hdKalan: "Remaining",
+    kopyalandi: "Copied",
+    donemYazi: { onizleme: "Today (as of {s} TRT)", cop: "Since COP31 began (as of {s} TRT)", bitti: "During COP31 (9–20 November)", gun: "On {tarih}" },
+    paylasCumle: "{d}, {komur} tonnes of coal were burned to generate electricity in Türkiye, roughly {kamyon} truckloads.",
+    tuketimAd: "Demand", rgPayAd: "Wind + solar share",
+    saat: "Hour", toplam: "Total", kismi: "partial hour",
+    dBaslik: "Day by day", dAltCop: "COP31 days", dAltOnce: "Recent days",
+    dSutun: ["Day", "Generation (GWh)", "Wind + solar", "Coal burned (t)", "CO₂ (t)", "Paid for imported coal", "Paid for gas"],
+    suruyor: "ongoing", copGunu: "day {n}",
+    ctBaslik: "Since COP31 began", ctBaslikBitti: "During COP31",
+    ctOnce: "COP31 starts on {tarih}. From then on this box shows the running totals for the conference.",
+    ctBekle: "Waiting for the first settled data (TEİAŞ data arrives about 75 minutes late).",
+    ctAlt: "Since {bas} · latest data {son} TRT", ctAltBitti: "{bas}–{bit}, settled TEİAŞ data",
+    pBaslik: "Share and reuse", pAlt: "Free to use with attribution.",
+    pKartBaslik: "Card of the day", pKartAciklama: "A ready-made image for social media. For a day in progress it shows the data so far.",
+    bicim: { yatay: "Landscape · X, LinkedIn", kare: "Square · Instagram post", hikaye: "Vertical · Instagram, WhatsApp story" },
+    sosyalEtiket: "Share this page:", baglantiKopyala: "Copy link", yerelPaylas: "Share…",
+    pOlustur: "Create card", pIndir: "Download PNG",
+    pGomBaslik: "Embed on your site", pGomAciklama: "Add the live counter to your COP31 coverage with this code.",
+    pKopyala: "Copy code", pKopyalandi: "Copied", pEkran: "Screen mode (for booths)",
+    yBaslik: "Data and method",
+    yontem: [
+      "Data: 15-minute generation by source from TEİAŞ's Load Dispatch Information System (YTBS), including unlicensed plants. TEİAŞ first publishes each new interval incomplete and fills it in over the next hour, so the site waits 75 minutes before using an interval; the page updates every 15 minutes.",
+      "The counters advance second by second at the rate of the latest settled 15 minutes and are corrected with each new data point. If data stops, they run ahead for at most 3 hours and then stop.",
+      "Coal burned: TEİAŞ 2025 fuel consumption divided by generation. {lin} tonnes per MWh for lignite; {bir} tonnes for imported coal, hard coal and asphaltite (TEİAŞ reports these three as one item).",
+      "Imported coal bill: imported coal tonnes × ${f}/tonne (2025 average).",
+      "Comparisons: 25 tonnes of coal per truck; annual net electricity use per person 3,360 kWh (TEİAŞ, 2022); annual greenhouse gas emissions per person 6.8 tonnes CO₂ equivalent (TÜİK, 2024). Rounded, approximate values.",
+      "Gas: TEİAŞ 2025 fuel consumption divided by gas-fired generation gives {m3} m³ of gas per MWh of electricity (including heat production in CHP plants). Gas energy uses BOTAŞ's gross calorific value (9,155 kcal/m³).",
+      "Paid for gas: for each day, gas burned that day × TTF price × ECB EUR/USD reference rate. The TTF price is the delayed price of ICE Endex's Dutch TTF front-month futures contract on ice.com (currently the {vade} contract, €{ttf}/MWh); the rate is {kur}. Today about ${gazMwh} per MWh of electricity. This values the gas at European market prices; BOTAŞ's long-term contract prices differ.",
+      "CO₂: ETKB's 2023 emission factors for electricity generation by fuel, tonnes CO₂/MWh: {co2Liste}. Hydro, wind, solar, geothermal, biomass and nuclear count as zero; naphtha and LPG use the diesel factor.",
+      "Groups: hydro = reservoir + run-of-river; gas = natural gas + LNG; coal = lignite + imported coal + hard coal + asphaltite; other = nuclear, fuel oil, diesel, naphtha, LPG and waste heat.",
+      "Emission targets chart: actual net emissions (including land use and forestry) from TÜİK's greenhouse gas inventory; reference scenarios and targets from Türkiye's INDC, first NDC and NDC 3.0. Only the 2018 starting point and 2035 value of the new reference scenario are shown.",
+      "This site is independent and is not affiliated with the UNFCCC or the COP31 Presidency.",
+    ],
+    fVeri: "Sources: TEİAŞ YTBS, ICE Endex (TTF), ECB, ETKB (emission factors) · latest data {s} TRT · page updated {g} TRT",
+    fKurum: "By {k}",
+    wKaynak: "Source: TEİAŞ · latest data {s} TRT · ",
+    grup: { gunes: "Solar", ruzgar: "Wind", digeryen: "Geothermal & biomass", dogalgaz: "Gas", hidro: "Hydro", komur: "Coal", diger: "Other" },
+    kart: { ust: "Electricity in Türkiye", rg: "wind and solar share of generation", komur: "tonnes of coal burned", kamyon: "≈ {n} truckloads", co2: "tonnes of CO₂ emitted", ithal: "paid for imported coal", gaz: "paid for gas (at TTF prices)", milyon: "${x} million", araligi: "00:00–{s}", alt: "TEİAŞ YTBS · TTF: ICE Endex · emissions: ETKB 2023 · independent data platform" },
+    yakit: { linyit: "lignite", taskomur: "hard coal", asfaltitkomur: "asphaltite", ithalkomur: "imported coal", dogalgaz: "gas", fueloil: "fuel oil", motorin: "diesel" },
+    bilgiEtiket: "What does this mean?",
+    bilgi: {
+      rg: ["Electricity from wind and solar", "Electricity generated by wind turbines and solar panels in this period. These plants burn no fuel: no import bill and no CO₂ from a chimney.", "The higher their share, the less coal and gas is burned for the same electricity."],
+      komur: ["Coal burned for power", "Lignite, imported coal, hard coal and asphaltite burned by thermal power plants to make electricity.", "Based on TEİAŞ 2025 data, the average amount of coal burned per MWh is multiplied by live generation. Coal is the largest source of power-sector CO₂ in Türkiye."],
+      co2: ["CO₂ from power generation", "Carbon dioxide released by power plants while generating electricity; the main greenhouse gas driving climate change.", "Each fuel uses ETKB's official emission factor: for example lignite emits 1.1 tonnes of CO₂ per MWh, gas 0.4 tonnes."],
+      ithal: ["Paid for imported coal", "The approximate cost of imported coal burned for electricity ($94 per tonne, 2025 average).", "This money leaves the country in foreign currency. Domestic wind and solar reduce these imports."],
+      gaz: ["Paid for gas (at TTF prices)", "The value of gas burned in gas power plants at European market prices (TTF). Türkiye imports most of its gas.", "BOTAŞ's long-term contract prices differ, so this is an estimate; it shows today's market value of the gas."],
+    },
+    sozlukBaslik: "Glossary", sozlukAlt: "Terms used on this page, briefly.",
+    sozluk: [
+      ["kWh, MWh, GWh", "Units of electrical energy. Your bill shows kWh; 1 MWh = 1,000 kWh, 1 GWh = 1,000 MWh."],
+      ["MW vs MWh", "MW is power at a moment; MWh is energy produced over an hour. A 1,000 MW plant produces 1,000 MWh in an hour."],
+      ["Unlicensed generation", "Output of plants that can be built without a licence, such as rooftop and small ground-mounted solar. A large part of Türkiye's solar is unlicensed; it is included in the data here."],
+      ["Lignite and imported coal", "Lignite is low-grade coal mined in Türkiye. Imported coal mostly arrives by sea and is paid for in foreign currency."],
+      ["TTF", "The Dutch gas trading hub and Europe's benchmark gas price, quoted in €/MWh."],
+      ["Emission factor", "The CO₂ released per MWh of electricity, by fuel. This site uses ETKB's 2023 values."],
+      ["Carbon intensity", "Average CO₂ per kWh of electricity generated, in grams. It rises with coal and falls with wind and solar."],
+      ["YTBS", "TEİAŞ's Load Dispatch Information System, which publishes 15-minute generation and demand data for the Turkish grid."],
+      ["COP31", "The 31st Conference of the Parties to the UN Framework Convention on Climate Change; Antalya, 9–20 November 2026."],
+    ],
+  },
+};
+
+const $ = (id) => document.getElementById(id);
+const params = new URLSearchParams(location.search);
+const MOD = ["ekran", "widget"].includes(params.get("mod")) ? params.get("mod") : "";
+let dil = baslangicDili();
+let D = null;          // data/ozet.json
+let ARSIV = null, ARSIV_SERI = null; // ?gun=YYYY-MM-DD ile açılan geçmiş günün kaydı ve 15 dk serisi
+let kopyaZamani = 0;
+
+function baslangicDili() {
+  const p = params.get("lang");
+  if (p === "tr" || p === "en") return p;
+  try { const k = localStorage.getItem("cop31-dil"); if (k === "tr" || k === "en") return k; } catch (e) { /* depolama kapalı olabilir */ }
+  return (navigator.language || "tr").toLowerCase().startsWith("tr") ? "tr" : "en";
+}
+const T = () => METIN[dil];
+const doldur = (s, v) => s.replace(/\{(\w+)\}/g, (_, k) => v[k] ?? "");
+const yerel = () => (dil === "tr" ? "tr-TR" : "en-GB");
+const sayi = (n, d = 0) => new Intl.NumberFormat(yerel(), { minimumFractionDigits: d, maximumFractionDigits: d }).format(n);
+const yuzde = (x, d = 1) => (dil === "tr" ? "%" + sayi(x * 100, d) : sayi(x * 100, d) + "%");
+const dolar = (n) => "$" + sayi(n);
+// Karşılıklar yaklaşık: binin üstünde üç anlamlı basamağa yuvarlanır (41.893 → 41.900).
+const yuvarla = (n) => { if (n < 1000) return Math.round(n); const k = 10 ** (Math.floor(Math.log10(n)) - 2); return Math.round(n / k) * k; };
+const saatYaz = (ms) => new Intl.DateTimeFormat(yerel(), { hour: "2-digit", minute: "2-digit", hourCycle: "h23", timeZone: "Europe/Istanbul" }).format(ms);
+const gunYaz = (tarih) => new Intl.DateTimeFormat(yerel(), { day: "numeric", month: "long", timeZone: "UTC" }).format(Date.parse(tarih + "T00:00Z"));
+const gece = (ms) => { const t = ms + TSI_FARK; return t - (t % GUN) - TSI_FARK; };
+// ICE vade kodu ("Dec26") → "Aralık 2026" / "December 2026"
+function vadeYaz(kod) {
+  const ay = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"].indexOf(kod?.slice(0, 3));
+  if (ay < 0) return kod || "–";
+  return new Intl.DateTimeFormat(yerel(), { month: "long", year: "numeric", timeZone: "UTC" }).format(Date.UTC(2000 + Number(kod.slice(3)), ay, 1));
+}
+const topla = (mw, g) => g.alan.reduce((s, a) => s + (mw[a] || 0), 0);
+const toplamUretim = (mw) => Object.values(mw).reduce((a, b) => a + b, 0);
+
+function copGunu(tarih) {
+  const n = Math.round((Date.parse(tarih + "T00:00+03:00") - Date.parse(D.cop.bas)) / GUN) + 1;
+  return n >= 1 && n <= COP_GUN_SAYISI ? n : 0;
+}
+
+// Sayaçların hangi döneme baktığı: COP öncesi bugün, COP sırasında ve sonrasında COP dönemi.
+// Gün bağlantısıyla açıldıysa o günün kesin toplamı; bit = son veri olduğu için sayaç ileri gitmez.
+function donem(simdi) {
+  if (ARSIV) return { tur: "gun", veri: ARSIV, bas: Date.parse(ARSIV.tarih + "T00:00+03:00"), bit: Date.parse(ARSIV.son) };
+  const bas = Date.parse(D.cop.bas), bit = Date.parse(D.cop.bit);
+  if (simdi < bas) {
+    const g0 = gece(simdi);
+    const ayniGun = D.bugun.bas && Date.parse(D.bugun.bas) === g0;
+    const veri = ayniGun ? D.bugun : { son: null, mwh: {}, komurTon: 0, ithalTon: 0, ithalUsd: 0, co2Ton: 0, co2KomurTon: 0, gazM3: 0, gazUsd: 0 };
+    return { tur: "onizleme", veri, bas: g0, bit: g0 + GUN };
+  }
+  return { tur: simdi < bit ? "cop" : "bitti", veri: D.copDonemi, bas, bit };
+}
+
+// Dönem toplamı + son hız × geçen süre. Son kesin veri normalde 75-125 dk geride; veri durursa en fazla 3 saat ileri gider.
+function sayac(p, toplam, saatlikHiz, simdi) {
+  const son = p.veri.son ? Date.parse(p.veri.son) : p.bas;
+  const ust = Math.min(simdi, p.bit, Date.parse(D.simdi.zaman) + 3 * SAAT);
+  return toplam + saatlikHiz * Math.max(0, ust - Math.max(son, p.bas)) / SAAT;
+}
+
+// Manşet cümlesini dil ya da dönem değişince bir kez kurar; her tikte yalnız rakamı günceller.
+let mansetAnahtari = "";
+function mansetYaz(tur, komurTon) {
+  if (mansetAnahtari !== dil + tur + (ARSIV?.tarih || "")) {
+    mansetAnahtari = dil + tur + (ARSIV?.tarih || "");
+    const [once, sonra] = doldur(T().manset[tur], { sayi: "{sayi}", tarih: ARSIV ? gunYaz(ARSIV.tarih) : "" }).split("{sayi}");
+    const kutu = document.createElement("span");
+    kutu.id = "h-sayi"; kutu.className = "hero-sayi";
+    $("baslik").replaceChildren(once, kutu, sonra);
+  }
+  $("h-sayi").textContent = sayi(komurTon) + " " + T().kKomurBirim;
+}
+
+function tik() {
+  if (!D) return;
+  const t = T(), simdi = Date.now(), p = donem(simdi), m = p.veri.mwh, h = D.hiz;
+  const rg = sayac(p, (m.gunes || 0) + (m.ruzgar || 0), h.mwh.gunes + h.mwh.ruzgar, simdi);
+  const komur = sayac(p, p.veri.komurTon, h.komurTon, simdi);
+  const ithalTon = sayac(p, p.veri.ithalTon, h.ithalUsd / D.katsayi.ithalUsdTon, simdi);
+  const ithalUsd = sayac(p, p.veri.ithalUsd, h.ithalUsd, simdi);
+  const co2 = sayac(p, p.veri.co2Ton, h.co2Ton, simdi);
+  const gazM3 = sayac(p, p.veri.gazM3, h.gazM3, simdi);
+  // TTF fiyatı hiç alınamadıysa gaz bedeli boş gelir; sayaç tire gösterir.
+  const gazUsd = p.veri.gazUsd == null || h.gazUsd == null ? null : sayac(p, p.veri.gazUsd, h.gazUsd, simdi);
+  const uretim = toplamUretim(m);
+  $("k-rg").textContent = sayi(rg);
+  $("k-rg-alt").textContent = doldur(t.kRgAlt, { gwh: sayi(rg / 1000), p: uretim ? yuzde(((m.gunes || 0) + (m.ruzgar || 0)) / uretim) : "–" });
+  $("k-komur").textContent = sayi(komur);
+  $("k-komur-alt").textContent = doldur(t.kKomurAlt, { t: sayi(ithalTon) });
+  $("k-co2").textContent = sayi(co2);
+  $("k-co2-alt").textContent = doldur(t.kCo2Alt, {
+    g: uretim ? sayi(1000 * p.veri.co2Ton / uretim) : "–",
+    p: p.veri.co2Ton ? yuzde(p.veri.co2KomurTon / p.veri.co2Ton, 0) : "–",
+  });
+  $("k-ithal").textContent = dolar(ithalUsd);
+  $("k-gaz").textContent = gazUsd == null ? "–" : dolar(gazUsd);
+  $("k-gaz-alt").textContent = doldur(t.kGazAlt, { m3: sayi(gazM3 / 1e6, 1), ttf: D.fiyat.ttf == null ? "–" : sayi(D.fiyat.ttf, 1) });
+  for (const id of ["k-rg", "k-komur", "k-co2", "k-ithal", "k-gaz"]) sigdir($(id).parentElement);
+  $("k-rg-esdeger").textContent = doldur(t.esRg, { n: sayi(yuvarla(rg * 1000 / KISI_KWH)) });
+  $("k-komur-esdeger").textContent = doldur(t.esKomur, { n: sayi(yuvarla(komur / KAMYON_TON)) });
+  $("k-co2-esdeger").textContent = doldur(t.esCo2, { n: sayi(yuvarla(co2 / KISI_CO2_TON)) });
+  // "Şu an saatte": son kesin 15 dakikanın saatlik hızı (D.hiz zaten saatlik), üç anlamlı basamağa yuvarlanmış.
+  const simdiHiz = p.tur !== "bitti" && p.tur !== "gun"; // geçmiş dönemde "şu an" hızı anlamsız
+  $("k-ithal-esdeger").textContent = simdiHiz ? doldur(t.esSaat, { x: dolar(yuvarla(h.ithalUsd)) }) : "";
+  $("k-gaz-esdeger").textContent = simdiHiz && h.gazUsd != null ? doldur(t.esSaat, { x: dolar(yuvarla(h.gazUsd)) }) : "";
+
+  mansetYaz(p.tur, komur);
+  const kalan = Date.parse(D.cop.bas) - simdi;
+  $("geri").textContent = doldur(t.geri[p.tur], {
+    sn: sayi(h.komurTon / 3600, 1), g: Math.floor(kalan / GUN), sa: Math.floor((kalan % GUN) / SAAT),
+    n: Math.min(COP_GUN_SAYISI, Math.floor((simdi - Date.parse(D.cop.bas)) / GUN) + 1),
+    cop: ARSIV && copGunu(ARSIV.tarih) ? doldur(t.geriGunCop, { n: copGunu(ARSIV.tarih) }) : "",
+  });
+  durumYaz(simdi);
+}
+
+// Sayaç değeri kutusuna sığmazsa yazıyı küçültür (COP sonunda gaz faturası 12 haneyi bulur).
+// Karakter sayısı değişince boyutu sıfırdan ölçer; düzen sonradan kayıp taşma olursa biraz daha küçültür.
+const siganUzunluk = new Map();
+function sigdir(p) {
+  const uzunluk = p.textContent.length;
+  if (siganUzunluk.get(p) !== uzunluk) {
+    siganUzunluk.set(p, uzunluk);
+    p.style.fontSize = "";
+  }
+  if (p.scrollWidth > p.clientWidth) p.style.fontSize = parseFloat(getComputedStyle(p).fontSize) * (p.clientWidth / p.scrollWidth) * 0.97 + "px";
+}
+
+function durumYaz(simdi) {
+  const t = T(), son = Date.parse(D.simdi.zaman), gecikmeli = simdi - son > 210 * 60e3;
+  const el = $("durum");
+  el.replaceChildren();
+  if (ARSIV) { el.textContent = doldur(t.durumGun, { tarih: gunYaz(ARSIV.tarih) + " " + ARSIV.tarih.slice(0, 4) }); return; }
+  if (gecikmeli) {
+    el.insertAdjacentHTML("beforeend", '<svg class="uyari-ikon" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5 15 14H1z" fill="var(--warning)"/><path d="M8 6v4M8 11.6v.8" stroke="#0b0b0b" stroke-width="1.6" stroke-linecap="round"/></svg>');
+  } else {
+    const n = document.createElement("span"); n.className = "nokta canli"; n.setAttribute("aria-hidden", "true"); el.append(n);
+  }
+  const s = document.createElement("span");
+  s.textContent = (gecikmeli ? t.gecikme : t.canli) + " · " + doldur(t.sonVeri, { s: saatYaz(son) });
+  el.append(s);
+}
+
+function inceCubuk(kap, mw) {
+  const top = toplamUretim(mw);
+  kap.replaceChildren();
+  for (const g of USTTEN) {
+    const v = topla(mw, g);
+    if (v <= 0) continue;
+    const s = document.createElement("span");
+    s.style.flex = String(v / top);
+    s.style.background = `var(--g-${g.id})`;
+    kap.append(s);
+  }
+  kap.setAttribute("role", "img");
+  kap.setAttribute("aria-label", USTTEN.map((g) => `${T().grup[g.id]} ${yuzde(topla(mw, g) / top)}`).join(", "));
+}
+
+function lejantCiz(ul) {
+  ul.replaceChildren();
+  for (const g of USTTEN) {
+    const li = document.createElement("li");
+    const sw = document.createElement("span"); sw.className = "sw"; sw.style.background = `var(--g-${g.id})`;
+    const ad = document.createElement("span"); ad.textContent = T().grup[g.id];
+    li.append(sw, ad); ul.append(li);
+  }
+}
+
+function simdiCiz() {
+  const t = T(), bit = Date.parse(D.simdi.zaman);
+  // Gün modunda son 15 dakika yerine günün ortalama karışımı (MWh ÷ saat = ortalama MW).
+  const saat = ARSIV ? ARSIV.aralik / 4 : 1;
+  const mw = ARSIV ? Object.fromEntries(Object.entries(ARSIV.mwh).map(([g, v]) => [g, v / saat])) : D.simdi.mw;
+  const top = toplamUretim(mw), rgPay = yuzde((mw.gunes + mw.ruzgar) / top);
+  $("s-baslik").textContent = ARSIV ? t.sBaslikGun : t.sBaslik;
+  $("s-alt").textContent = ARSIV ? doldur(t.sAltGun, { tarih: gunYaz(ARSIV.tarih) }) : doldur(t.sAlt, { a: saatYaz(bit - 15 * 60e3), b: saatYaz(bit) });
+  $("s-manset").textContent = doldur(t.sManset, { p: rgPay });
+  $("w-manset").textContent = t.sBaslik + " · " + doldur(t.sManset, { p: rgPay });
+  inceCubuk($("s-ince"), mw);
+  inceCubuk($("w-ince"), mw);
+  lejantCiz($("w-lejant"));
+  const ul = $("s-liste");
+  ul.replaceChildren();
+  for (const g of USTTEN) {
+    const v = topla(mw, g), li = document.createElement("li");
+    const sw = document.createElement("span"); sw.className = "sw"; sw.style.background = `var(--g-${g.id})`;
+    const ad = document.createElement("span"); ad.textContent = t.grup[g.id];
+    const deger = document.createElement("span"); deger.className = "mw"; deger.textContent = sayi(v) + " MW";
+    const pay = document.createElement("span"); pay.className = "pay"; pay.textContent = yuzde(v / top);
+    li.append(sw, ad, deger, pay);
+    if (g.id === "komur") {
+      const ek = document.createElement("span"); ek.className = "ek";
+      ek.textContent = doldur(t.komurEk, { a: sayi(mw.ithalkomur), b: sayi(mw.linyit + mw.taskomur) });
+      li.append(ek);
+    }
+    ul.append(li);
+  }
+  $("s-tuketim").textContent = ARSIV
+    ? doldur(t.tuketimGun, { g: sayi(1000 * ARSIV.co2Ton / toplamUretim(ARSIV.mwh)) })
+    : doldur(t.tuketim, { mw: sayi(D.simdi.yuk), g: sayi(1000 * D.simdi.co2 / top) });
+}
+
+// Gün dosyasındaki ham YTBS alanlarını sayfanın gruplarına çevirir (veri/guncelle.py'deki GRUPLAR ile aynı).
+const HAM_GRUP = {
+  gunes: ["gunes"], ruzgar: ["ruzgar"], hidro: ["barajli", "akarsu"], jeotermal: ["jeotermal"], biyokutle: ["biyokutle"],
+  nukleer: ["nukleer"], dogalgaz: ["dogalgaz", "lng"], ithalkomur: ["ithalkomur"], linyit: ["linyit"], taskomur: ["taskomur", "asfaltitkomur"],
+};
+async function gunSerisi(tarih) {
+  const k = await (await fetch(`data/gun/${tarih}.json`)).json();
+  const bilinen = new Set(Object.values(HAM_GRUP).flat());
+  const mw = Object.fromEntries(Object.entries(HAM_GRUP).map(([g, alanlar]) => [g, k.zaman.map((_, i) => alanlar.reduce((t, a) => t + (k.kaynak[a]?.[i] || 0), 0))]));
+  mw.diger = k.zaman.map((_, i) => Object.keys(k.kaynak).filter((a) => !bilinen.has(a)).reduce((t, a) => t + k.kaynak[a][i], 0));
+  const gece0 = Date.parse(tarih + "T00:00+03:00");
+  const zaman = k.zaman.map((hhmm) => { const [s, d] = hhmm.split(":").map(Number); return new Date(gece0 + (s * 60 + d) * 60e3).toISOString(); });
+  return { tarih, zaman, mw, yuk: k.yuk };
+}
+
+// 15 dk seriyi saat başlarına toplar (MW ortalaması); son 24 saat.
+function saatlik(s = D.seri) {
+  const kovalar = new Map();
+  s.zaman.forEach((z, i) => {
+    const bas = Date.parse(z) - 15 * 60e3, saat = bas - (bas % SAAT);
+    let k = kovalar.get(saat);
+    if (!k) { k = { bas: saat, n: 0, mw: {}, yuk: 0 }; for (const g of GRUP) k.mw[g.id] = 0; kovalar.set(saat, k); }
+    for (const g of GRUP) k.mw[g.id] += g.alan.reduce((a, alan) => a + (s.mw[alan]?.[i] || 0), 0);
+    k.yuk += s.yuk[i]; k.n++; k.son = Date.parse(z);
+  });
+  const liste = [...kovalar.values()].sort((a, b) => a.bas - b.bas).slice(-24);
+  for (const k of liste) {
+    for (const id in k.mw) k.mw[id] /= k.n;
+    k.yuk /= k.n; k.toplam = toplamUretim(k.mw);
+  }
+  return liste;
+}
+
+function grafikCiz(seri = D.seri) {
+  const t = T(), kovalar = saatlik(seri);
+  $("g-baslik").textContent = ARSIV ? t.gBaslikGun : t.gBaslik;
+  $("g-alt").textContent = ARSIV ? doldur(t.gAltGun, { tarih: gunYaz(ARSIV.tarih) }) : t.gAlt;
+  $("g-tablo-ac").textContent = t.tabloAc;
+  lejantCiz($("g-lejant"));
+
+  // viewBox kabın piksel boyutunda: yazılar her ekranda 12 px kalır, ekran modunda grafik kalan yüksekliği doldurur.
+  const kap = $("g-kap");
+  const W = Math.max(300, Math.round(kap.clientWidth || 720));
+  const H = MOD === "ekran" ? Math.max(180, Math.round(kap.clientHeight || 300)) : W < 520 ? 240 : 300;
+  const yazi = MOD === "ekran" ? Math.max(12, Math.round(innerHeight * 0.016)) : 12; // TV'de uzaktan okunsun
+  const m = { l: yazi * 2.8, r: 6, t: 8, b: yazi * 2 }, pw = W - m.l - m.r, ph = H - m.t - m.b;
+  const enBuyuk = Math.max(...kovalar.map((k) => k.toplam)) / 1000;
+  const adim = enBuyuk > 60 ? 20 : 10, ust = Math.max(adim, Math.ceil(enBuyuk / adim) * adim);
+  const y = (gw) => m.t + ph - (gw / ust) * ph;
+  const slot = pw / kovalar.length, bw = Math.min(24, slot * 0.7);
+  const el = svgEl;
+  const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, class: "grafik", role: "img", "aria-label": t.gBaslik + ", " + t.gAlt, style: `font-size:${yazi}px` });
+
+  for (let gw = 0; gw <= ust; gw += adim) {
+    el("line", { x1: m.l, x2: W - m.r, y1: y(gw), y2: y(gw), stroke: gw ? "var(--grid)" : "var(--axis)", "stroke-width": 1, "shape-rendering": "crispEdges" }, svg);
+    el("text", { x: m.l - 6, y: y(gw) + yazi / 3, "text-anchor": "end" }, svg).textContent = sayi(gw);
+  }
+  kovalar.forEach((k, i) => {
+    const x = m.l + i * slot + (slot - bw) / 2;
+    const sutun = el("g", { class: "sutun" }, svg);
+    const gorunur = GRUP.filter((g) => k.mw[g.id] / 1000 / ust * ph >= 1);
+    let taban = y(0);
+    for (const g of GRUP) {
+      const h = (k.mw[g.id] / 1000 / ust) * ph;
+      if (h < 1) continue;
+      const ustte = g === gorunur[gorunur.length - 1];
+      const yt = taban - h;
+      if (ustte) {
+        const r = Math.min(4, h, bw / 2);
+        el("path", { d: `M${x},${taban}V${yt + r}Q${x},${yt} ${x + r},${yt}H${x + bw - r}Q${x + bw},${yt} ${x + bw},${yt + r}V${taban}Z`, style: `fill:var(--g-${g.id})` }, sutun);
+      } else if (h > 2) {
+        el("rect", { x, y: yt + 2, width: bw, height: h - 2, style: `fill:var(--g-${g.id})` }, sutun); // üstte 2 px zemin boşluğu
+      }
+      taban = yt;
+    }
+    const saat = new Date(k.bas + TSI_FARK).getUTCHours();
+    if (saat % (W < 460 ? 6 : 3) === 0) el("text", { x: x + bw / 2, y: H - yazi / 2, "text-anchor": "middle" }, svg).textContent = String(saat).padStart(2, "0") + ":00";
+    const etiket = `${saatYaz(k.bas)}–${saatYaz(k.son)}`;
+    const hedef = el("rect", { class: "hedef", x: m.l + i * slot, y: m.t, width: slot, height: ph, tabindex: 0, "aria-label": `${etiket}: ${t.toplam} ${sayi(k.toplam / 1000, 1)} GW` }, svg);
+    const goster = (cx, cy) => {
+      svg.classList.add("odak"); sutun.classList.add("aktif");
+      ipucuYaz(etiket + (k.n < 4 ? ` (${t.kismi})` : ""), [
+        ...USTTEN.map((g) => ({ renk: `var(--g-${g.id})`, deger: sayi(k.mw[g.id] / 1000, 1) + " GW", ad: t.grup[g.id] })),
+        { deger: sayi(k.toplam / 1000, 1) + " GW", ad: t.toplam, sinif: "toplam" },
+      ]);
+      ipucuGoster(cx, cy);
+    };
+    const gizle = () => { svg.classList.remove("odak"); sutun.classList.remove("aktif"); $("ipucu").hidden = true; };
+    hedef.addEventListener("pointermove", (e) => goster(e.clientX, e.clientY));
+    hedef.addEventListener("pointerleave", gizle);
+    hedef.addEventListener("focus", () => { const b = hedef.getBoundingClientRect(); goster(b.right, b.top + b.height / 2); });
+    hedef.addEventListener("blur", gizle);
+  });
+  $("g-kap").replaceChildren(svg);
+  saatlikTablo(kovalar);
+}
+
+const NS = "http://www.w3.org/2000/svg";
+const svgEl = (ad, ozellik, ebeveyn) => { const e = document.createElementNS(NS, ad); for (const k in ozellik) e.setAttribute(k, ozellik[k]); ebeveyn?.append(e); return e; };
+
+// İpucu kutusu: başlık ve satırlar (renk anahtarı, önde değer, arkada ad).
+function ipucuYaz(baslik, satirlar) {
+  const bas = document.createElement("div"); bas.className = "bas"; bas.textContent = baslik;
+  $("ipucu").replaceChildren(bas, ...satirlar.map(({ renk, deger, ad, sinif }) => {
+    const s = document.createElement("div"); s.className = "satir" + (sinif ? " " + sinif : "");
+    const a = document.createElement("span"); a.className = "anahtar"; if (renk) a.style.background = renk;
+    const b = document.createElement("b"); b.textContent = deger;
+    const c = document.createElement("span"); c.textContent = ad;
+    s.append(a, b, c); return s;
+  }));
+}
+function ipucuGoster(cx, cy) {
+  const ipucu = $("ipucu");
+  ipucu.hidden = false;
+  const r = ipucu.getBoundingClientRect();
+  ipucu.style.left = Math.min(innerWidth - r.width - 8, Math.max(8, cx + 14)) + "px";
+  ipucu.style.top = Math.min(innerHeight - r.height - 8, Math.max(8, cy - r.height / 2)) + "px";
+}
+
+// "Güneş ve rüzgârın günü": tüketim çizgisi ve altında rüzgârla güneşin karşıladığı kısım (15 dk, son 24 saat).
+function gunesGunuCiz(seri = D.seri) {
+  const t = T();
+  $("gg-baslik").textContent = t.ggBaslik;
+  $("gg-alt").textContent = ARSIV ? doldur(t.ggAltGun, { tarih: gunYaz(ARSIV.tarih) }) : t.ggAlt;
+  $("gg-lejant").replaceChildren(...[["cizgi", "var(--ink)", t.tuketimAd], ["sw", "var(--g-gunes)", t.grup.gunes], ["sw", "var(--g-ruzgar)", t.grup.ruzgar]].map(([sinif, renk, ad]) => {
+    const li = document.createElement("li");
+    const k = document.createElement("span"); k.className = sinif; k.style.background = renk;
+    const s = document.createElement("span"); s.textContent = ad;
+    li.append(k, s); return li;
+  }));
+  const n = seri.zaman.length;
+  if (n < 2) return;
+  const zaman = seri.zaman.map(Date.parse), gunes = seri.mw.gunes, ruzgar = seri.mw.ruzgar, yuk = seri.yuk;
+  // Manşet: rüzgâr ve güneşin birlikte karşıladığı en yüksek pay ve dönemin ortalaması (tüketimi bilinen aralıklarda)
+  const pay = (i) => (yuk[i] ? (gunes[i] + ruzgar[i]) / yuk[i] : 0);
+  let en = 0, rgToplam = 0, yukToplam = 0;
+  for (let i = 0; i < n; i++) {
+    if (pay(i) > pay(en)) en = i;
+    if (yuk[i]) { rgToplam += gunes[i] + ruzgar[i]; yukToplam += yuk[i]; }
+  }
+  $("gg-manset").textContent = doldur(ARSIV ? t.ggMansetGun : t.ggManset, { p: yuzde(pay(en), 0), s: saatYaz(zaman[en]), o: yukToplam ? yuzde(rgToplam / yukToplam, 0) : "–" });
+
+  const kap = $("gg-kap");
+  const W = Math.max(300, Math.round(kap.clientWidth || 720)), H = W < 520 ? 220 : 260;
+  const m = { l: 34, r: 8, t: 8, b: 24 }, pw = W - m.l - m.r, ph = H - m.t - m.b;
+  const enBuyuk = Math.max(...yuk) / 1000, adim = enBuyuk > 60 ? 20 : 10, ust = Math.max(adim, Math.ceil(enBuyuk / adim) * adim);
+  const x = (ms) => m.l + ((ms - zaman[0]) / (zaman[n - 1] - zaman[0])) * pw;
+  const y = (mw) => m.t + ph - (mw / 1000 / ust) * ph;
+  const svg = svgEl("svg", { viewBox: `0 0 ${W} ${H}`, class: "grafik", role: "img", "aria-label": t.ggBaslik + ". " + $("gg-manset").textContent });
+  for (let gw = 0; gw <= ust; gw += adim) {
+    svgEl("line", { x1: m.l, x2: W - m.r, y1: y(gw * 1000), y2: y(gw * 1000), stroke: gw ? "var(--grid)" : "var(--axis)", "stroke-width": 1, "shape-rendering": "crispEdges" }, svg);
+    svgEl("text", { x: m.l - 6, y: y(gw * 1000) + 4, "text-anchor": "end" }, svg).textContent = sayi(gw);
+  }
+  const alan = (ust, alt) => "M" + zaman.map((z, i) => `${x(z)},${y(ust[i])}`).join("L") + "L" + zaman.map((z, i) => `${x(z)},${y(alt[i])}`).reverse().join("L") + "Z";
+  const rgUst = ruzgar.map((r, i) => r + gunes[i]);
+  svgEl("path", { d: alan(ruzgar, zaman.map(() => 0)), style: "fill:var(--g-ruzgar);fill-opacity:.55" }, svg);
+  svgEl("path", { d: alan(rgUst, ruzgar), style: "fill:var(--g-gunes);fill-opacity:.55" }, svg);
+  svgEl("path", { d: "M" + zaman.map((z, i) => `${x(z)},${y(yuk[i])}`).join("L"), fill: "none", style: "stroke:var(--ink)", "stroke-width": 2, "stroke-linejoin": "round", "stroke-linecap": "round" }, svg);
+  for (let i = 0; i < n; i++) {
+    const d = new Date(zaman[i] + TSI_FARK);
+    if (d.getUTCMinutes() === 0 && d.getUTCHours() % (W < 460 ? 6 : 3) === 0)
+      svgEl("text", { x: x(zaman[i]), y: H - 6, "text-anchor": "middle" }, svg).textContent = String(d.getUTCHours()).padStart(2, "0") + ":00";
+  }
+  // Çizgi ve alan için imleç: işaretçi en yakın 15 dakikaya oturur; klavyede oklarla gezilir.
+  const imlec = svgEl("line", { class: "imlec", y1: m.t, y2: m.t + ph, visibility: "hidden" }, svg);
+  const hedef = svgEl("rect", { class: "hedef", x: m.l, y: m.t, width: pw, height: ph, tabindex: 0, "aria-label": t.ggBaslik }, svg);
+  let secili = en;
+  const goster = (i) => {
+    secili = i;
+    imlec.setAttribute("x1", x(zaman[i])); imlec.setAttribute("x2", x(zaman[i])); imlec.setAttribute("visibility", "visible");
+    ipucuYaz(`${saatYaz(zaman[i] - 15 * 60e3)}–${saatYaz(zaman[i])}`, [
+      { renk: "var(--ink)", deger: sayi(yuk[i] / 1000, 1) + " GW", ad: t.tuketimAd },
+      { renk: "var(--g-gunes)", deger: sayi(gunes[i] / 1000, 1) + " GW", ad: t.grup.gunes },
+      { renk: "var(--g-ruzgar)", deger: sayi(ruzgar[i] / 1000, 1) + " GW", ad: t.grup.ruzgar },
+      { deger: yuk[i] ? yuzde((gunes[i] + ruzgar[i]) / yuk[i], 0) : "–", ad: t.rgPayAd, sinif: "toplam" },
+    ]);
+    const b = svg.getBoundingClientRect();
+    ipucuGoster(b.left + x(zaman[i]) * (b.width / W), b.top + b.height / 2);
+  };
+  const enYakin = (cx) => {
+    const b = svg.getBoundingClientRect(), xv = (cx - b.left) * (W / b.width);
+    let k = 0;
+    for (let i = 1; i < n; i++) if (Math.abs(x(zaman[i]) - xv) < Math.abs(x(zaman[k]) - xv)) k = i;
+    return k;
+  };
+  const gizle = () => { imlec.setAttribute("visibility", "hidden"); $("ipucu").hidden = true; };
+  hedef.addEventListener("pointermove", (e) => goster(enYakin(e.clientX)));
+  hedef.addEventListener("pointerleave", gizle);
+  hedef.addEventListener("focus", () => goster(secili));
+  hedef.addEventListener("blur", gizle);
+  hedef.addEventListener("keydown", (e) => {
+    if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+    e.preventDefault();
+    goster(Math.max(0, Math.min(n - 1, secili + (e.key === "ArrowLeft" ? -1 : 1))));
+  });
+  kap.replaceChildren(svg);
+}
+
+function saatlikTablo(kovalar) {
+  const t = T(), tab = $("g-tablo");
+  tab.replaceChildren();
+  const bas = tab.createTHead().insertRow();
+  for (const ad of [t.saat, ...USTTEN.map((g) => t.grup[g.id] + " (GW)"), t.toplam + " (GW)", t.tuketimAd + " (GW)"]) {
+    const th = document.createElement("th"); th.textContent = ad; bas.append(th);
+  }
+  const govde = tab.createTBody();
+  for (const k of kovalar) {
+    const r = govde.insertRow();
+    r.insertCell().textContent = saatYaz(k.bas) + (k.n < 4 ? "*" : "");
+    for (const g of USTTEN) r.insertCell().textContent = sayi(k.mw[g.id] / 1000, 1);
+    r.insertCell().textContent = sayi(k.toplam / 1000, 1);
+    r.insertCell().textContent = sayi(k.yuk / 1000, 1);
+  }
+}
+
+function gosterilecekGunler() {
+  const cop = D.gunler.filter((g) => copGunu(g.tarih));
+  return (cop.length ? cop : D.gunler.slice(-8)).slice().reverse();
+}
+
+function gunlerCiz() {
+  const t = T(), gunler = gosterilecekGunler(), copVar = gunler.some((g) => copGunu(g.tarih));
+  $("d-baslik").textContent = t.dBaslik;
+  $("d-alt").textContent = copVar ? t.dAltCop : t.dAltOnce;
+  const tab = $("d-tablo");
+  tab.replaceChildren();
+  const bas = tab.createTHead().insertRow();
+  for (const ad of t.dSutun) { const th = document.createElement("th"); th.textContent = ad; bas.append(th); }
+  const govde = tab.createTBody();
+  for (const g of gunler) {
+    const r = govde.insertRow(), m = g.mwh, top = toplamUretim(m), n = copGunu(g.tarih);
+    if (ARSIV && ARSIV.tarih === g.tarih) r.className = "secili";
+    // Tarih, o günün kalıcı bağlantısı; bugün canlı sayfanın kendisi.
+    const c = r.insertCell(), a = document.createElement("a");
+    a.href = g.aralik < 96 ? `./?lang=${dil}` : `./?gun=${g.tarih}&lang=${dil}`;
+    a.title = t.gunBaglanti;
+    a.textContent = gunYaz(g.tarih) + (n ? " · " + doldur(t.copGunu, { n }) : "");
+    c.append(a);
+    if (g.aralik < 96) { const s = document.createElement("span"); s.className = "not"; s.textContent = " (" + t.suruyor + ")"; c.append(s); }
+    r.insertCell().textContent = sayi(top / 1000, 1);
+    r.insertCell().textContent = yuzde((m.gunes + m.ruzgar) / top);
+    r.insertCell().textContent = sayi(g.komurTon);
+    r.insertCell().textContent = sayi(g.co2Ton);
+    r.insertCell().textContent = dolar(g.ithalUsd);
+    r.insertCell().textContent = g.gazUsd == null ? "–" : dolar(g.gazUsd);
+  }
+  const sec = $("p-gun"), onceki = sec.value;
+  sec.replaceChildren();
+  for (const g of gunler) {
+    const o = document.createElement("option");
+    const n = copGunu(g.tarih);
+    o.value = g.tarih; o.textContent = gunYaz(g.tarih) + (n ? " · " + doldur(t.copGunu, { n }) : "") + (g.aralik < 96 ? " (" + t.suruyor + ")" : "");
+    sec.append(o);
+  }
+  if (onceki && gunler.some((g) => g.tarih === onceki)) sec.value = onceki;
+  else if (ARSIV) sec.value = ARSIV.tarih;
+}
+
+// Paylaşım kartı, her zaman koyu zemin. Yatay: X ve LinkedIn; kare: Instagram gönderisi; dikey: hikâyeler.
+const KART_BICIM = {
+  yatay: { W: 1200, H: 675, pay: 72, ust: 84, ustYazi: 30, baslik: 134, baslikYazi: 40, satir0: 210, satirAra: 68, deger: 52, ad: 26, yanYana: true,
+    cubuk: 508, lejant: 562, lejantYazi: 22, alt: 626, siteYazi: 26, kaynakYazi: 20 },
+  kare: { W: 1080, H: 1080, pay: 72, ust: 104, ustYazi: 30, baslik: 160, baslikYazi: 42, satir0: 290, satirAra: 124, deger: 66, ad: 28, yanYana: false,
+    cubuk: 892, lejant: 946, lejantYazi: 24, alt: 1018, siteYazi: 28, kaynakYazi: 20 },
+  hikaye: { W: 1080, H: 1920, pay: 80, ust: 220, ustYazi: 36, baslik: 292, baslikYazi: 54, satir0: 520, satirAra: 220, deger: 104, ad: 36, yanYana: false,
+    cubuk: 1590, lejant: 1660, lejantYazi: 30, alt: 1810, siteYazi: 36, kaynakYazi: 24 },
+};
+function kartCiz(tarih, bicim = $("p-bicim").value || "yatay") {
+  const t = T(), g = D.gunler.find((x) => x.tarih === tarih);
+  if (!g) return;
+  const m = g.mwh, top = toplamUretim(m), n = copGunu(tarih), b = KART_BICIM[bicim];
+  const { W, H, pay: P } = b, c = document.createElement("canvas");
+  c.width = W; c.height = H;
+  const x = c.getContext("2d"), F = 'system-ui, -apple-system, "Segoe UI", sans-serif';
+  x.fillStyle = "#1a1a19"; x.fillRect(0, 0, W, H);
+  x.textBaseline = "alphabetic";
+  x.fillStyle = "#c3c2b7"; x.font = `500 ${b.ustYazi}px ${F}`;
+  const ust = (n ? "COP31 · " + doldur(t.copGunu, { n }).replace(/^./, (h) => h.toLocaleUpperCase(yerel())) + " · " : "") + gunYaz(tarih);
+  x.fillText(ust, P, b.ust);
+  x.fillStyle = "#f0efec"; x.font = `650 ${b.baslikYazi}px ${F}`;
+  x.fillText(t.kart.ust, P, b.baslik);
+  if (g.aralik < 96) {
+    const kismi = "(" + doldur(t.kart.araligi, { s: saatYaz(Date.parse(g.son)) }) + ")", w = x.measureText(t.kart.ust).width;
+    x.fillStyle = "#898781"; x.font = `400 ${b.ad - 2}px ${F}`;
+    if (b.yanYana) x.fillText(kismi, P + w + 14, b.baslik); else x.fillText(kismi, P, b.baslik + b.ad * 1.5);
+  }
+  const satirlar = [
+    [yuzde((m.gunes + m.ruzgar) / top), t.kart.rg],
+    [sayi(g.komurTon), t.kart.komur + " · " + doldur(t.kart.kamyon, { n: sayi(yuvarla(g.komurTon / KAMYON_TON)) })],
+    [sayi(g.co2Ton), t.kart.co2],
+    [milyonDolar(g.ithalUsd), t.kart.ithal],
+    [g.gazUsd == null ? "–" : milyonDolar(g.gazUsd), t.kart.gaz],
+  ];
+  // Yatayda ad değerin yanında, kare ve dikeyde altında.
+  satirlar.forEach(([deger, ad], i) => {
+    const yy = b.satir0 + i * b.satirAra;
+    x.fillStyle = "#f0efec"; x.font = `650 ${b.deger}px ${F}`;
+    x.fillText(deger, P, yy);
+    const w = x.measureText(deger).width;
+    x.fillStyle = "#c3c2b7"; x.font = `400 ${b.ad}px ${F}`;
+    if (b.yanYana) x.fillText(ad, P + w + 16, yy); else x.fillText(ad, P, yy + b.ad * 1.45);
+  });
+  // karışım çubuğu, 2 px boşluklu; lejant sığmazsa alt satıra geçer
+  let bx = P; const cw = W - 2 * P;
+  const parcalar = USTTEN.map((gr) => [gr.id, gr.alan.reduce((a, alan) => a + (m[alan] || 0), 0)]).filter(([, v]) => v > 0);
+  parcalar.forEach(([id, v], i) => {
+    const w = (v / top) * (cw - 2 * (parcalar.length - 1));
+    x.fillStyle = KART_RENK[id];
+    x.beginPath(); x.roundRect(bx, b.cubuk, w, 16, i === 0 ? [8, 0, 0, 8] : i === parcalar.length - 1 ? [0, 8, 8, 0] : 0); x.fill();
+    bx += w + 2;
+  });
+  let lx = P, ly = b.lejant; const ls = b.lejantYazi;
+  x.font = `400 ${ls}px ${F}`;
+  for (const [id] of parcalar) {
+    const genislik = ls + 8 + x.measureText(t.grup[id]).width;
+    if (lx + genislik > W - P) { lx = P; ly += ls * 1.7; }
+    x.fillStyle = KART_RENK[id]; x.fillRect(lx, ly - ls * 0.8, ls * 0.65, ls * 0.65);
+    x.fillStyle = "#c3c2b7"; x.fillText(t.grup[id], lx + ls, ly);
+    lx += genislik + ls;
+  }
+  x.fillStyle = "#f0efec"; x.font = `650 ${b.siteYazi}px ${F}`; x.fillText("cop31antalya.com", P, b.alt);
+  x.fillStyle = "#898781"; x.font = `400 ${b.kaynakYazi}px ${F}`;
+  const alt = t.kart.alt;
+  if (b.yanYana) x.fillText(alt, W - P - x.measureText(alt).width, b.alt); else x.fillText(alt, P, b.alt + b.kaynakYazi * 1.8);
+  c.toBlob((blob) => {
+    const url = URL.createObjectURL(blob);
+    $("kart-img").src = url;
+    $("kart-img").alt = ust + ": " + satirlar.map(([d, a]) => d + " " + a).join(", ");
+    const a = $("kart-indir"); a.href = url; a.download = `cop31-${tarih}-${bicim}.png`; a.textContent = t.pIndir;
+    $("kart-onizleme").hidden = false;
+  }, "image/png");
+}
+
+// --- İndirme: CSV ve grafik PNG ---
+function indir(blob, dosya) {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = dosya;
+  document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+// Excel Türkçe karakterleri doğru açsın diye UTF-8 BOM; ayraç virgül, ondalık nokta.
+const csvMetni = (satirlar) => "\ufeff" + satirlar.map((r) => r.map((h) => {
+  const s = h == null ? "" : String(h);
+  return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}).join(",")).join("\r\n");
+
+function gunlukCsv() {
+  const gruplar = Object.keys(D.gunler[0].mwh);
+  return csvMetni([
+    ["tarih", "aralik_sayisi", "uretim_mwh", ...gruplar.map((g) => g + "_mwh"), "yakilan_komur_ton", "ithal_komur_ton", "co2_ton", "ithal_komur_usd", "gaz_m3", "gaz_usd", "ttf_eur_mwh"],
+    ...D.gunler.map((g) => [g.tarih, g.aralik, toplamUretim(g.mwh).toFixed(1), ...gruplar.map((k) => g.mwh[k]),
+      g.komurTon, g.ithalTon, g.co2Ton, g.ithalUsd, g.gazM3, g.gazUsd, g.ttf]),
+  ]);
+}
+
+async function dakikalikCsv() {
+  const gunler = gosterilecekGunler().map((g) => g.tarih).sort();
+  const kayitlar = await Promise.all(gunler.map((t) => fetch(`data/gun/${t}.json`).then((r) => r.json())));
+  const alanlar = [...new Set(kayitlar.flatMap((k) => Object.keys(k.kaynak)))].sort();
+  const f = D.katsayi.co2TonMwh, satirlar = [["aralik_sonu", ...alanlar.map((a) => a + "_mw"), "yuk_mw", "co2_ton"]];
+  for (const k of kayitlar) {
+    k.zaman.forEach((hhmm, i) => {
+      const [s, d] = hhmm.split(":").map(Number);
+      const bitis = Date.parse(k.tarih + "T00:00+03:00") + (s * 60 + d) * 60e3;
+      const co2 = alanlar.reduce((t, a) => t + (k.kaynak[a]?.[i] || 0) * (f[a] || 0), 0) / 4;
+      satirlar.push([new Date(bitis + TSI_FARK).toISOString().slice(0, 16) + "+03:00", ...alanlar.map((a) => k.kaynak[a]?.[i] ?? ""), k.yuk[i], co2.toFixed(1)]);
+    });
+  }
+  return { metin: csvMetni(satirlar), ilk: gunler[0], son: gunler[gunler.length - 1] };
+}
+
+// SVG grafiği başlık, lejant ve kaynakla birlikte 2x PNG'ye çevirir. CSS değişkenleri ayrı bir görselde
+// çözülmediği için renkler hesaplanmış değerleriyle elemanlara yazılır.
+async function grafikPng(kap, baslik, lejant, kaynak = T().pngKaynak) {
+  const svg = kap.querySelector("svg"), kopya = svg.cloneNode(true);
+  const asil = [svg, ...svg.querySelectorAll("*")], yeni = [kopya, ...kopya.querySelectorAll("*")];
+  asil.forEach((el, i) => {
+    const cs = getComputedStyle(el), k = yeni[i];
+    for (const [ozellik, css] of [["fill", cs.fill], ["stroke", cs.stroke], ["fill-opacity", cs.fillOpacity], ["opacity", cs.opacity]]) if (css) k.setAttribute(ozellik, css);
+    if (el.tagName === "text") { k.setAttribute("font-size", cs.fontSize); k.setAttribute("font-weight", cs.fontWeight); } // sınıf ve stil silinince yazı 16 px'e dönmesin
+    k.removeAttribute("style"); k.removeAttribute("class");
+  });
+  kopya.querySelectorAll("rect[tabindex], line[visibility]").forEach((e) => e.remove()); // dokunma hedefleri, imleç
+  const [, , W, H] = kopya.getAttribute("viewBox").split(" ").map(Number);
+  kopya.setAttribute("width", W); kopya.setAttribute("height", H);
+  kopya.setAttribute("font-family", 'system-ui, -apple-system, "Segoe UI", sans-serif');
+  kopya.setAttribute("xmlns", NS);
+  const img = new Image();
+  img.src = URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(kopya)], { type: "image/svg+xml" }));
+  await img.decode();
+  const cs = getComputedStyle(document.documentElement), renk = (v) => cs.getPropertyValue(v).trim();
+  const pay = 24, ust = 84, alt = 40, c = document.createElement("canvas");
+  c.width = (W + 2 * pay) * 2; c.height = (H + ust + alt) * 2;
+  const x = c.getContext("2d"), F = 'system-ui, -apple-system, "Segoe UI", sans-serif';
+  x.scale(2, 2);
+  x.fillStyle = renk("--surface"); x.fillRect(0, 0, W + 2 * pay, H + ust + alt);
+  x.fillStyle = renk("--ink"); x.font = `650 18px ${F}`; x.fillText(baslik, pay, 32);
+  let lx = pay; x.font = `400 13px ${F}`;
+  for (const li of lejant.querySelectorAll("li")) {
+    const anahtar = li.firstElementChild, ad = li.lastElementChild.textContent;
+    const st = getComputedStyle(anahtar), tur = anahtar.className;
+    x.fillStyle = tur === "kesik" ? st.color : st.backgroundColor;
+    if (tur === "kesik") for (let i = 0; i < 3; i++) x.fillRect(lx + i * 6, 57, 4, 2);
+    else if (tur === "daire") { x.beginPath(); x.arc(lx + 5, 57, 4.5, 0, 2 * Math.PI); x.fill(); }
+    else if (tur === "cizgi") x.fillRect(lx, 57, 14, 2);
+    else x.fillRect(lx, 52, 10, 10);
+    x.fillStyle = renk("--ink-2"); x.fillText(ad, lx + 18, 62);
+    lx += 18 + x.measureText(ad).width + 16;
+  }
+  x.drawImage(img, pay, ust);
+  x.fillStyle = renk("--ink-2"); x.font = `400 12px ${F}`; x.fillText(kaynak, pay, ust + H + 26);
+  URL.revokeObjectURL(img.src);
+  return new Promise((coz) => c.toBlob(coz, "image/png"));
+}
+
+// Panoya kopyalar; düğme iki saniye "Kopyalandı" der.
+async function kopyala(metin, dugme) {
+  try { await navigator.clipboard.writeText(metin); }
+  catch (e) {
+    const alan = document.createElement("textarea"); alan.value = metin; document.body.append(alan);
+    alan.select(); document.execCommand("copy"); alan.remove();
+  }
+  const eski = dugme.textContent; dugme.textContent = T().kopyalandi;
+  setTimeout(() => { dugme.textContent = eski; }, 2000);
+}
+
+const milyonDolar = (n) => doldur(T().kart.milyon, { x: sayi(n / 1e6, 1) });
+
+// COP31 bağlamı: günün teması ve 120 GW hedefine ilerleme.
+function copBaglamCiz() {
+  const t = T(), simdi = Date.now(), tema = $("tema");
+  const bugun = new Date(simdi + TSI_FARK).toISOString().slice(0, 10), n = copGunu(ARSIV ? ARSIV.tarih : bugun);
+  tema.hidden = MOD === "widget" || (!n && (ARSIV || simdi > Date.parse(D.cop.bit)));
+  tema.textContent = n ? doldur(ARSIV ? t.temaGun : t.temaBugun, { tema: t.temalar[n - 1] }) : t.temaOnce;
+  $("atla").replaceChildren(...t.atla.map(([hedef, ad]) => { const a = document.createElement("a"); a.href = hedef; a.textContent = ad; return a; }));
+
+  const k = D.kapasite, kurulu = k.gunesMw + k.ruzgarMw, kalan = k.hedefMw - kurulu;
+  const yil = (Date.UTC(k.hedefYil, 11, 31) - Date.parse(k.tarih)) / (365.25 * GUN);
+  $("hd-baslik").textContent = t.hdBaslik;
+  $("hd-alt").textContent = doldur(t.hdAlt, { tarih: new Intl.DateTimeFormat(yerel(), { month: "long", year: "numeric", timeZone: "UTC" }).format(Date.parse(k.tarih)) });
+  $("hd-manset").textContent = doldur(t.hdManset, { yil: k.hedefYil, hedef: sayi(k.hedefMw / 1000), oran: yuzde(kurulu / k.hedefMw, 0) });
+  const parca = [["gunes", k.gunesMw], ["ruzgar", k.ruzgarMw]];
+  $("hd-olcer").replaceChildren(...parca.map(([id, v]) => { const sp = document.createElement("span"); sp.style.width = (100 * v / k.hedefMw) + "%"; sp.style.background = `var(--g-${id})`; return sp; }));
+  $("hd-olcer").setAttribute("role", "img");
+  $("hd-olcer").setAttribute("aria-label", $("hd-manset").textContent);
+  $("hd-lejant").replaceChildren(...[...parca.map(([id, v]) => [`var(--g-${id})`, `${t.grup[id]} ${sayi(v / 1000, 1)} GW`]), ["var(--grid)", `${t.hdKalan} ${sayi(kalan / 1000, 1)} GW`]].map(([renk, ad]) => {
+    const li = document.createElement("li"), sw = document.createElement("span"), a = document.createElement("span");
+    sw.className = "sw"; sw.style.background = renk; a.textContent = ad; li.append(sw, a); return li;
+  }));
+  $("hd-not").textContent = doldur(t.hdNot, { kalan: sayi(kalan / 1000, 1), yil: k.hedefYil, hiz: sayi(kalan / 1000 / yil, 1) });
+}
+
+// Türkiye'nin emisyon hedefleri: gerçekleşen (mürekkep), referans senaryolar (gri, kesikli) ve hedefler (vurgu rengi).
+// Yeni referansın ara yılları veride olmadığı için çizgi çizilmez; yalnız 2018 başlangıcı ve 2035 değeri işaretlenir.
+function emisyonCiz() {
+  const t = T(), E = EMISYON, kap = $("em-kap"), [indc, ndc1, ndc3] = E.hedef, son = E.gercek[E.gercek.length - 1];
+  const sayiMt = (v) => new Intl.NumberFormat(yerel(), { maximumFractionDigits: 2 }).format(v);
+  const alti = (h) => yuzde(1 - h.deger / h.ref, 0);
+  $("em-baslik").textContent = t.emBaslik; $("em-alt").textContent = t.emAlt; $("em-tablo-ac").textContent = t.tabloAc;
+  $("em-manset").textContent = doldur(t.emManset, { hedef: sayi(ndc3.deger), yil: son[0], son: sayi(son[1]) });
+  $("em-not").textContent = doldur(t.emNot, { indc: alti(indc), ndc1: alti(ndc1), ndc3: alti(ndc3), eski: sayi(indc.ref), yeni: sayi(ndc3.ref),
+    b2018: sayi(Math.round(E.yeniRef[0][1])), artis: yuzde(ndc3.deger / E.yeniRef[0][1] - 1, 0) });
+  $("em-lejant").replaceChildren(...[["cizgi", "var(--ink)", t.emSeri.gercek], ["kesik", "var(--muted)", t.emSeri.ref], ["daire", "var(--vurgu)", t.emSeri.hedef]].map(([sinif, renk, ad]) => {
+    const li = document.createElement("li"), k = document.createElement("span"), s = document.createElement("span");
+    k.className = sinif; k.style.color = renk; if (sinif !== "kesik") k.style.background = renk;
+    s.textContent = ad; li.append(k, s); return li;
+  }));
+
+  const W = Math.max(300, Math.round(kap.clientWidth || 720)), dar = W < 640, H = W < 520 ? 270 : 320;
+  const m = { l: 40, r: dar ? 46 : 112, t: 10, b: 24 }, pw = W - m.l - m.r, ph = H - m.t - m.b, YUST = 1200;
+  const x = (yil) => m.l + ((yil - 2012) / (2035 - 2012)) * pw, y = (v) => m.t + ph - (v / YUST) * ph;
+  const svg = svgEl("svg", { viewBox: `0 0 ${W} ${H}`, class: "grafik", role: "img", "aria-label": t.emBaslik + ". " + $("em-manset").textContent });
+  for (let v = 0; v <= YUST; v += 200) {
+    svgEl("line", { x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), stroke: v ? "var(--grid)" : "var(--axis)", "stroke-width": 1, "shape-rendering": "crispEdges" }, svg);
+    svgEl("text", { x: m.l - 6, y: y(v) + 4, "text-anchor": "end" }, svg).textContent = sayi(v);
+  }
+  for (const yil of [2015, 2020, 2025, 2030, 2035]) svgEl("text", { x: x(yil), y: H - 6, "text-anchor": "middle" }, svg).textContent = yil;
+  const yol = (noktalar) => "M" + noktalar.map(([a, b]) => `${x(a)},${y(b)}`).join("L");
+  const nokta = (yil, v, r, renk, bos = false) => svgEl("circle", { cx: x(yil), cy: y(v), r, style: bos ? `fill:var(--surface);stroke:${renk}` : `fill:${renk};stroke:var(--surface)`, "stroke-width": 2 }, svg);
+  // Referans ile ona göre konan hedefler arasında ince noktalı bağ
+  for (const [yil, ust, alt] of [[2030, indc.ref, ndc1.deger], [2035, ndc3.ref, ndc3.deger]])
+    svgEl("line", { x1: x(yil), x2: x(yil), y1: y(ust), y2: y(alt), style: "stroke:var(--axis)", "stroke-width": 1, "stroke-dasharray": "2 3" }, svg);
+  svgEl("path", { d: yol(E.eskiRef), fill: "none", style: "stroke:var(--muted)", "stroke-width": 2, "stroke-dasharray": "6 4", "stroke-linejoin": "round" }, svg);
+  svgEl("path", { d: yol(E.ndc3Yol), fill: "none", style: "stroke:var(--vurgu)", "stroke-width": 2, "stroke-dasharray": "6 4" }, svg);
+  svgEl("path", { d: yol(E.gercek), fill: "none", style: "stroke:var(--ink)", "stroke-width": 2.5, "stroke-linejoin": "round", "stroke-linecap": "round" }, svg);
+  for (const [yil, v] of E.eskiRef.slice(1)) nokta(yil, v, 3, "var(--muted)");
+  nokta(...E.eskiRef[0], 4.5, "var(--muted)", true);   // eski referans yılı (2012)
+  nokta(...E.yeniRef[0], 4.5, "var(--muted)", true);   // yeni referans yılı (2018)
+  nokta(...E.yeniRef[1], 4, "var(--muted)");
+  nokta(...son, 4, "var(--ink)");
+  for (const h of E.hedef) nokta(h.yil, h.deger, 5.5, "var(--vurgu)");
+  // Doğrudan etiketler: dar ekranda yalnız değer
+  const etiket = (xx, yy, metin, yon = "start") => { svgEl("text", { x: xx, y: yy, "text-anchor": yon, class: "deger-etiket" }, svg).textContent = metin; };
+  const ad = (k) => (dar ? "" : t.emKisa[k] + " ");
+  etiket(x(son[0]), y(son[1]) - 10, sayi(son[1]), "middle");
+  etiket(x(2030) + 9, y(indc.ref) + 4, ad("eskiRef") + sayi(indc.ref));
+  etiket(x(2030) + 9, y(indc.deger) + 4, ad("indc") + sayi(Math.round(indc.deger)));
+  etiket(x(2030) + 9, y(ndc1.deger) + 4, ad("ndc1") + sayi(ndc1.deger));
+  etiket(x(2035) + 9, y(ndc3.ref) + 4, ad("yeniRef") + sayi(ndc3.ref));
+  etiket(x(2035) + 9, y(ndc3.deger) + 4, ad("ndc3") + sayi(ndc3.deger));
+
+  // Üzerine gelince ya da klavyeyle: verisi olan yıllar arasında gezen imleç
+  const YILLAR = [...new Set([...E.gercek, ...E.eskiRef, ...E.yeniRef].map(([a]) => a).concat(E.hedef.map((h) => h.yil)))].sort((a, b) => a - b);
+  const deger = (seri, yil) => seri.find(([a]) => a === yil)?.[1];
+  const satirlar = (yil) => {
+    const r = [], g = deger(E.gercek, yil), e = deger(E.eskiRef, yil), n = deger(E.yeniRef, yil);
+    if (g != null) r.push({ renk: "var(--ink)", deger: sayiMt(g), ad: t.emAd.gercek });
+    if (e != null) r.push({ renk: "var(--muted)", deger: sayiMt(e), ad: t.emAd.eskiRef + (yil === E.eskiRef[0][0] ? " · " + t.emRefYili : "") });
+    if (n != null) r.push({ renk: "var(--muted)", deger: sayiMt(n), ad: t.emAd.yeniRef + (yil === E.yeniRef[0][0] ? " · " + t.emRefYili : "") });
+    for (const h of E.hedef) if (h.yil === yil) r.push({ renk: "var(--vurgu)", deger: sayiMt(h.deger), ad: t.emAd[h.id] + " · " + doldur(t.emAlti, { p: alti(h) }) });
+    return r;
+  };
+  const imlec = svgEl("line", { class: "imlec", y1: m.t, y2: m.t + ph, visibility: "hidden" }, svg);
+  const hedef = svgEl("rect", { class: "hedef", x: m.l, y: m.t, width: pw, height: ph, tabindex: 0, "aria-label": t.emBaslik }, svg);
+  let secili = YILLAR.indexOf(son[0]);
+  const goster = (i) => {
+    secili = i;
+    const yil = YILLAR[i];
+    imlec.setAttribute("x1", x(yil)); imlec.setAttribute("x2", x(yil)); imlec.setAttribute("visibility", "visible");
+    ipucuYaz(`${yil} · ${t.emBirim}`, satirlar(yil));
+    const b = svg.getBoundingClientRect();
+    ipucuGoster(b.left + x(yil) * (b.width / W), b.top + b.height / 2);
+  };
+  const enYakin = (cx) => {
+    const b = svg.getBoundingClientRect(), xv = (cx - b.left) * (W / b.width);
+    return YILLAR.reduce((k, yil, i) => (Math.abs(x(yil) - xv) < Math.abs(x(YILLAR[k]) - xv) ? i : k), 0);
+  };
+  const gizle = () => { imlec.setAttribute("visibility", "hidden"); $("ipucu").hidden = true; };
+  hedef.addEventListener("pointermove", (ev) => goster(enYakin(ev.clientX)));
+  hedef.addEventListener("pointerleave", gizle);
+  hedef.addEventListener("focus", () => goster(secili));
+  hedef.addEventListener("blur", gizle);
+  hedef.addEventListener("keydown", (ev) => {
+    if (ev.key !== "ArrowLeft" && ev.key !== "ArrowRight") return;
+    ev.preventDefault();
+    goster(Math.max(0, Math.min(YILLAR.length - 1, secili + (ev.key === "ArrowLeft" ? -1 : 1))));
+  });
+  kap.replaceChildren(svg);
+
+  // Tablo görünümü
+  const tab = $("em-tablo");
+  tab.replaceChildren();
+  const bas = tab.createTHead().insertRow();
+  for (const ad2 of [t.emYil, t.emAd.gercek, t.emAd.eskiRef, t.emAd.yeniRef, t.emAd.indc, t.emAd.ndc1, t.emAd.ndc3]) { const th = document.createElement("th"); th.textContent = ad2; bas.append(th); }
+  const govde = tab.createTBody();
+  for (const yil of YILLAR) {
+    const r = govde.insertRow();
+    r.insertCell().textContent = yil;
+    for (const v of [deger(E.gercek, yil), deger(E.eskiRef, yil), deger(E.yeniRef, yil), ...E.hedef.map((h) => (h.yil === yil ? h.deger : null))])
+      r.insertCell().textContent = v == null ? "" : sayiMt(v);
+  }
+}
+
+// "COP başladığından bu yana": COP günlerinin kesinleşmiş toplamı, gün gün tablosunun altında.
+// COP başlamadan boş bekler; veri geldikçe kendiliğinden dolar (D.copDonemi, veri/guncelle.py).
+function copToplamCiz() {
+  const t = T(), c = D.copDonemi, simdi = Date.now();
+  const bas = Date.parse(D.cop.bas), bit = Date.parse(D.cop.bit);
+  const gunu = (ms) => gunYaz(new Date(ms + TSI_FARK).toISOString().slice(0, 10));
+  const m = c && c.aralik > 0 ? c.mwh : null, top = m ? toplamUretim(m) : 0, bitti = simdi >= bit;
+  $("ct-baslik").textContent = bitti && top ? t.ctBaslikBitti : t.ctBaslik;
+  $("ct-alt").textContent = !top ? (simdi < bas ? doldur(t.ctOnce, { tarih: gunu(bas) }) : t.ctBekle)
+    : bitti ? doldur(t.ctAltBitti, { bas: gunu(bas), bit: gunu(bit - 1) })
+    : doldur(t.ctAlt, { bas: gunu(bas), son: gunu(Date.parse(c.son)) + " " + saatYaz(Date.parse(c.son)) });
+  const degerler = top
+    ? [sayi(top / 1000, 1), yuzde((m.gunes + m.ruzgar) / top), sayi(c.komurTon), sayi(c.co2Ton),
+       milyonDolar(c.ithalUsd), c.gazUsd == null ? "–" : milyonDolar(c.gazUsd)]
+    : Array(6).fill("–");
+  $("cop-toplam").classList.toggle("bekliyor", !top);
+  // Etiketler gün gün tablosunun sütunlarıyla aynı
+  $("ct-izgara").replaceChildren(...t.dSutun.slice(1).map((ad, i) => {
+    const kap = document.createElement("div"), dt = document.createElement("dt"), dd = document.createElement("dd");
+    dt.textContent = ad; dd.textContent = degerler[i]; kap.append(dt, dd); return kap;
+  }));
+}
+
+let paylasimMetni = "";
+// Yerelde çalışırken localhost paylaşılmasın: gerçek alan adı kullanılır
+const SITE = "https://cop31antalya.com/";
+const yerelde = () => location.protocol === "file:" || /^(localhost|127\.|\[::1\])/.test(location.hostname);
+const paylasimAdresi = () => (yerelde() ? SITE : location.origin + location.pathname) + (ARSIV ? `?gun=${ARSIV.tarih}&lang=${dil}` : `?lang=${dil}`);
+
+function paylasCiz() {
+  const t = T();
+  $("p-baslik").textContent = t.pBaslik; $("p-alt").textContent = t.pAlt;
+  $("p-kart-baslik").textContent = t.pKartBaslik; $("p-kart-aciklama").textContent = t.pKartAciklama;
+  $("p-olustur").textContent = t.pOlustur; $("kart-indir").textContent = t.pIndir;
+  $("p-gom-baslik").textContent = t.pGomBaslik; $("p-gom-aciklama").textContent = t.pGomAciklama;
+  $("p-kopyala").textContent = Date.now() - kopyaZamani < 2000 ? t.pKopyalandi : t.pKopyala;
+  const kok = location.origin + location.pathname;
+  $("p-kod").value = `<iframe src="${kok}?mod=widget&lang=${dil}" title="${dil === "tr" ? "COP31 elektrik sayacı" : "COP31 electricity counter"}" width="100%" height="520" style="border:0;max-width:760px" loading="lazy"></iframe>`;
+  const ekran = $("p-ekran"); ekran.href = `${kok}?mod=ekran&lang=${dil}`; ekran.textContent = t.pEkran;
+  const bs = $("p-bicim"), secili = bs.value || "yatay";
+  bs.replaceChildren(...Object.entries(t.bicim).map(([k, ad]) => { const o = document.createElement("option"); o.value = k; o.textContent = ad; return o; }));
+  bs.value = secili;
+  // Hazır metinli paylaşım bağlantıları; LinkedIn yalnız adresi alıyor. Metin kesinleşmiş veriyle,
+  // dönemin son verisi itibarıyla (sayaç gibi ileri sayılmaz); veri yoksa sayfa başlığı.
+  const p = donem(Date.now()), v = p.veri;
+  paylasimMetni = toplamUretim(v.mwh) ? doldur(t.paylasCumle, {
+    d: doldur(t.donemYazi[p.tur], { s: saatYaz(Date.parse(v.son)), tarih: ARSIV ? gunYaz(ARSIV.tarih) : "" }),
+    komur: sayi(yuvarla(v.komurTon)), kamyon: sayi(yuvarla(v.komurTon / KAMYON_TON)),
+  }) : "";
+  const adres = paylasimAdresi(), metin = paylasimMetni || document.title, e = encodeURIComponent;
+  $("p-sosyal-etiket").textContent = t.sosyalEtiket;
+  $("p-x").href = `https://x.com/intent/post?text=${e(metin)}&url=${e(adres)}`;
+  $("p-bsky").href = `https://bsky.app/intent/compose?text=${e(metin + " " + adres)}`;
+  $("p-linkedin").href = `https://www.linkedin.com/sharing/share-offsite/?url=${e(adres)}`;
+  $("p-whatsapp").href = `https://wa.me/?text=${e(metin + " " + adres)}`;
+  $("p-baglanti").textContent = t.baglantiKopyala;
+  $("p-yerel").hidden = !navigator.share; $("p-yerel").textContent = t.yerelPaylas;
+}
+
+function sabitMetinler() {
+  const t = T();
+  document.documentElement.lang = dil;
+  document.title = (dil === "tr" ? "COP31 Elektrik Sayacı" : "COP31 Electricity Counter") + (ARSIV ? " · " + gunYaz(ARSIV.tarih) : "");
+  $("canliya-don-p").hidden = !ARSIV;
+  $("canliya-don").textContent = t.canliyaDon; $("canliya-don").href = `./?lang=${dil}`;
+  const bant = $("bant"); bant.replaceChildren(t.bant);
+  const a = document.createElement("a"); a.href = "https://unfccc.int/cop31"; a.textContent = "unfccc.int/cop31"; a.rel = "noopener"; a.target = "_blank";
+  bant.append(a);
+  $("k-rg-etiket").textContent = t.kRg;
+  $("k-komur-etiket").textContent = t.kKomur; $("k-komur-birim").textContent = t.kKomurBirim;
+  $("k-co2-etiket").textContent = t.kCo2; $("k-co2-birim").textContent = t.kCo2Birim;
+  $("k-ithal-etiket").textContent = t.kIthal; $("k-gaz-etiket").textContent = t.kGaz;
+  for (const b of document.querySelectorAll(".dil button")) b.setAttribute("aria-pressed", String(b.dataset.dil === dil));
+  $("y-baslik").textContent = t.yBaslik;
+  document.querySelectorAll(".png").forEach((b) => { b.textContent = t.pngIndir; });
+  $("csv-gunluk").textContent = t.csvGunluk; $("csv-dakika").textContent = t.csvDakika; $("indir-not").textContent = t.indirNot;
+  for (const [k, [baslik, ...paragraflar]] of Object.entries(t.bilgi)) {
+    const h = document.createElement("h3"); h.textContent = baslik;
+    $("b-" + k).replaceChildren(h, ...paragraflar.map((metin) => { const p = document.createElement("p"); p.textContent = metin; return p; }));
+  }
+  for (const b of document.querySelectorAll(".bilgi")) { b.setAttribute("aria-label", t.bilgiEtiket); b.title = t.bilgiEtiket; }
+  $("sozluk-baslik").textContent = t.sozlukBaslik; $("sozluk-alt").textContent = t.sozlukAlt;
+  $("sss-baslik").textContent = t.sssBaslik;
+  $("sss-liste").replaceChildren(...t.sss.map(([soru, cevap]) => {
+    const d = document.createElement("details"), sm = document.createElement("summary"), pp = document.createElement("p");
+    sm.textContent = soru; pp.textContent = cevap; d.append(sm, pp); return d;
+  }));
+  $("sozluk").replaceChildren(...t.sozluk.flatMap(([terim, aciklama]) => {
+    const dt = document.createElement("dt"); dt.textContent = terim;
+    const dd = document.createElement("dd"); dd.textContent = aciklama;
+    const kap = document.createElement("div"); kap.append(dt, dd); return [kap];
+  }));
+}
+
+function hepsiniCiz() {
+  sabitMetinler();
+  emisyonCiz(); // sabit veri: özet yüklenmese de çizilir
+  if (!D) return;
+  const t = T(), k = D.katsayi, f = D.fiyat;
+  $("k-ithal-alt").textContent = doldur(t.kIthalAlt, { f: k.ithalUsdTon });
+  const seri = ARSIV ? ARSIV_SERI : D.seri;
+  simdiCiz(); gunesGunuCiz(seri); grafikCiz(seri); copBaglamCiz(); gunlerCiz(); copToplamCiz(); paylasCiz();
+  const ul = $("y-liste");
+  ul.replaceChildren(...t.yontem.map((s) => {
+    const li = document.createElement("li");
+    li.textContent = doldur(s, {
+      lin: sayi(k.linyitTonMwh, 2), bir: sayi(k.birlesikTonMwh, 3), f: k.ithalUsdTon, m3: sayi(k.gazM3Mwh),
+      vade: vadeYaz(f.vade), ttf: f.ttf == null ? "–" : sayi(f.ttf, 2), kur: f.eurusd == null ? "–" : sayi(f.eurusd, 4),
+      gazMwh: f.gazUsdMwh == null ? "–" : sayi(f.gazUsdMwh),
+      co2Liste: Object.entries(t.yakit).map(([alan, ad]) => ad + " " + sayi(k.co2TonMwh[alan], 3)).join(", "),
+    });
+    return li;
+  }));
+  const sonVeri = saatYaz(Date.parse(D.simdi.zaman));
+  $("f-veri").textContent = doldur(t.fVeri, { s: sonVeri, g: saatYaz(Date.parse(D.guncellendi)) });
+  $("f-kurum").hidden = !KURUM;
+  $("f-kurum").textContent = doldur(t.fKurum, { k: KURUM });
+  const wk = $("w-kaynak"); wk.replaceChildren(doldur(t.wKaynak, { s: sonVeri }));
+  const wl = document.createElement("a"); wl.href = location.origin + location.pathname + "?lang=" + dil; wl.target = "_blank"; wl.rel = "noopener"; wl.textContent = location.host || "cop31antalya.com";
+  wk.append(wl);
+  tik();
+}
+
+async function yukle() {
+  try {
+    // 5 dakikalık önbellek kovası: herkes aynı adresi ister, CDN önbelleği işe yarar.
+    const r = await fetch("data/ozet.json?v=" + Math.floor(Date.now() / 300e3), { cache: "no-cache" });
+    if (!r.ok) throw new Error(r.status);
+    D = await r.json();
+    const istenen = params.get("gun"), bugun = new Date(Date.now() + TSI_FARK).toISOString().slice(0, 10);
+    ARSIV = MOD ? null : D.gunler.find((g) => g.tarih === istenen && g.tarih !== bugun) || null;
+    if (ARSIV && ARSIV_SERI?.tarih !== ARSIV.tarih) ARSIV_SERI = await gunSerisi(ARSIV.tarih);
+    hepsiniCiz();
+  } catch (e) {
+    console.warn("veri yüklenemedi", e);
+    if (!D) $("durum").textContent = dil === "tr" ? "Veri yüklenemedi, birkaç dakika içinde yeniden denenecek." : "Could not load data; retrying in a few minutes.";
+  }
+}
+
+document.querySelectorAll(".dil button").forEach((b) => b.addEventListener("click", () => {
+  dil = b.dataset.dil;
+  try { localStorage.setItem("cop31-dil", dil); } catch (e) { /* depolama kapalı olabilir */ }
+  hepsiniCiz();
+  if (!$("kart-onizleme").hidden) kartCiz($("p-gun").value);
+}));
+$("p-olustur").addEventListener("click", () => kartCiz($("p-gun").value));
+// Sayfa içi menüden SSS'ye gidilince kapalı bölüm açılır
+document.addEventListener("click", (e) => { if (e.target.closest('a[href="#sss"]')) $("sss").open = true; });
+if (location.hash === "#sss") $("sss").open = true;
+$("p-bicim").addEventListener("change", () => { if (!$("kart-onizleme").hidden) kartCiz($("p-gun").value); });
+$("p-baglanti").addEventListener("click", (e) => kopyala(paylasimAdresi(), e.currentTarget));
+$("p-yerel").addEventListener("click", () => navigator.share({ title: document.title, text: paylasimMetni, url: paylasimAdresi() }).catch(() => {}));
+$("csv-gunluk").addEventListener("click", () => indir(new Blob([gunlukCsv()], { type: "text/csv;charset=utf-8" }), "cop31antalya-gunluk.csv"));
+$("csv-dakika").addEventListener("click", async () => {
+  const { metin, ilk, son } = await dakikalikCsv();
+  indir(new Blob([metin], { type: "text/csv;charset=utf-8" }), `cop31antalya-15dk-${ilk}_${son}.csv`);
+});
+document.querySelectorAll(".png").forEach((b) => b.addEventListener("click", async () => {
+  const k = b.dataset.grafik, t = T();
+  const baslik = k === "em" ? t.emPngBaslik : $(k + "-baslik").textContent + " · " + $(k + "-alt").textContent;
+  const dosya = { gg: "gunes-ve-ruzgarin-gunu", g: "son-24-saat", em: "emisyon-hedefleri" }[k];
+  indir(await grafikPng($(k + "-kap"), baslik, $(k + "-lejant"), k === "em" ? t.emPngKaynak : t.pngKaynak), `cop31antalya-${dosya}.png`);
+}));
+$("p-kopyala").addEventListener("click", async () => {
+  const kod = $("p-kod");
+  try { await navigator.clipboard.writeText(kod.value); } catch (e) { kod.select(); document.execCommand("copy"); }
+  kopyaZamani = Date.now(); paylasCiz();
+  setTimeout(paylasCiz, 2100);
+});
+
+if (MOD) document.body.classList.add(MOD);
+if (MOD === "ekran" && params.get("tema") !== "acik") document.documentElement.dataset.theme = "dark";
+hepsiniCiz();
+yukle();
+setInterval(tik, 500);
+setInterval(yukle, 5 * 60e3);
+let boyutZamanlayici;
+addEventListener("resize", () => {
+  clearTimeout(boyutZamanlayici);
+  boyutZamanlayici = setTimeout(() => { siganUzunluk.clear(); emisyonCiz(); if (D) { const seri = ARSIV ? ARSIV_SERI : D.seri; gunesGunuCiz(seri); grafikCiz(seri); tik(); } }, 150);
+});
+document.addEventListener("visibilitychange", () => { if (!document.hidden && D && Date.now() - Date.parse(D.guncellendi) > 10 * 60e3) yukle(); });
+</script>
+</body>
+</html>

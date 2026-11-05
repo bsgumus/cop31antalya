@@ -1,0 +1,4 @@
+# Yalnız bu bilgisayarda gereken dosyalar
+.DS_Store
+COP31 Sayacı.command
+__pycache__/
