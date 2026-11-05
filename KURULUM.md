@@ -4,56 +4,89 @@ Canlı elektrik sayacı: COP31 boyunca rüzgâr ve güneşten üretim, yakılan 
 ithal kömür faturası ve gazın TTF fiyatıyla bedeli. Üretim TEİAŞ YTBS'nin 15 dakikalık
 verisi (lisanssız dahil); TTF ICE Endex'ten, kur ECB'den, emisyon faktörleri ETKB'den.
 
-Mimari (tamamı ücretsiz, sunucu ve giriş yok):
+Mimari (tamamı ücretsiz, sunucu yok):
 
 ```
-GitHub Actions (15 dakikada bir) ──▶ TEİAŞ YTBS, ICE Endex (TTF), ECB (EUR/USD)
-   veri/guncelle.py  →  data/gun/*.json + data/fiyat.json + data/ozet.json  (depoya kaydedilir)
+Bu Mac (Türkiye) ── launchd, 15 dakikada bir ──▶ veri/yayinla.sh
+   veri/guncelle.py: TEİAŞ YTBS, ICE Endex (TTF), ECB (EUR/USD)
+   → data/gun/*.json + data/fiyat.json + data/ozet.json → git push
         │
-        └──▶ GitHub Pages (index.html + data/)  ──HTTPS──▶ Ziyaretçi, widget, ekran
+        └──▶ GitHub (bsgumus/cop31antalya) ── Actions, her gönderimde ──▶ GitHub Pages ──HTTPS──▶ ziyaretçi
 ```
 
-Ziyaretçi bu kaynaklara hiç bağlanmaz; herkes aynı statik JSON'u okur, trafik ne kadar
-artarsa artsın kaynaklara giden istek sayısı değişmez.
+**TEİAŞ YTBS yalnız Türkiye'den erişilebiliyor.** 6 Kasım 2026 testi: 40 ülke düğümünden
+yalnız İstanbul'dakiler bağlandı; GitHub'ın sunucuları da zaman aşımına uğruyor. Bu yüzden veri
+Türkiye'deki bir bilgisayarda çekilir, GitHub yalnız yayınlar. Ziyaretçi kaynaklara hiç
+bağlanmaz; herkes aynı statik JSON'u okur.
 
 ---
 
-## 1) GitHub deposu (~10 dk)
+## 1) Depolar (kuruldu)
 
-1. https://github.com → sağ üst **+ → New repository**. Ad: `cop31antalya`,
-   görünürlük **Public** → **Create repository**.
-2. **uploading an existing file** bağlantısı: `index.html` ve `og.png` dosyalarını,
-   `veri/` ile `data/` klasörlerini sürükleyin → **Commit changes**.
-3. İş akışı dosyası: **Add file → Create new file**. Dosya adı kutusuna
-   `.github/workflows/veri.yml` yazın (eğik çizgiler klasörleri kendiliğinden açar),
-   bu klasördeki `.github/workflows/veri.yml` içeriğini yapıştırın → **Commit changes**.
-   (Finder `.github` klasörünü gizler; görmek için Finder'da Cmd+Shift+.)
+- `bsgumus/cop31antalya`: site, veri ve yayın iş akışı (`.github/workflows/veri.yml`, her
+  gönderimde Pages'e yayınlar). Geçici adres: https://bsgumus.github.io/cop31antalya/
+- `bsgumus/cop31antalya-tr`: cop31antalya.tr'yi aynı sayfa ve parametrelerle .com'a yönlendiren
+  küçük sayfa (`../cop31antalya-tr` klasörü).
+- Bu Mac'te GitHub CLI `~/.local/bin/gh` (bsgumus hesabıyla giriş yapıldı); git gönderimleri
+  bunun üzerinden kimlik doğrular.
 
-## 2) Pages'i Actions'a bağlayın (~2 dk)
+Sayfada değişiklik yaptıktan sonra yayına göndermek için:
 
-1. Depoda **Settings → Pages → Build and deployment → Source: GitHub Actions**.
-2. **Actions** sekmesi. Uyarı çıkarsa iş akışlarını etkinleştirin.
-3. Soldan **Veri güncelle ve yayınla → Run workflow**. Bir dakika içinde yeşil tik
-   gelmeli; site şurada açılır: `https://bsgumus.github.io/cop31antalya/`
+```bash
+cd ~/fabledeneme/cop31antalya && git add -A && git commit -m "Sayfa güncellemesi" && git push
+```
 
-Bundan sonra iş akışı her saat 07, 22, 37 ve 52. dakikalarda kendiliğinden çalışır,
-depoya her `index.html` değişikliği de yeniden yayınlar.
+## 2) Veri güncelleyici (bu Mac)
 
-## 3) Alan adı (~5 dk + DNS bekleme)
+`veri/yayinla.sh` veriyi çekip değişiklik varsa GitHub'a gönderir. launchd her saatin 07, 22,
+37 ve 52. dakikasında çalıştırır (`veri/com.cop31antalya.veri.plist`). Kurulum:
 
-1. **Settings → Pages → Custom domain**: `cop31antalya.com` → **Save**.
-   (Actions ile yayında CNAME dosyası kullanılmaz; ayar burada tutulur.)
-2. Alan adını aldığınız yerin DNS ekranında varsa park kayıtlarını silin, şunları ekleyin:
+```bash
+cp ~/fabledeneme/cop31antalya/veri/com.cop31antalya.veri.plist ~/Library/LaunchAgents/ && launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.cop31antalya.veri.plist
+```
 
-| Tip   | Host | Cevap                    |
-|-------|------|--------------------------|
-| A     | @    | 185.199.108.153          |
-| A     | @    | 185.199.109.153          |
-| A     | @    | 185.199.110.153          |
-| A     | @    | 185.199.111.153          |
+- Günlük: `~/Library/Logs/cop31antalya-veri.log`
+- Elle bir kez çalıştırmak: `bash ~/fabledeneme/cop31antalya/veri/yayinla.sh`
+- Durdurmak:
+
+```bash
+launchctl bootout gui/$(id -u)/com.cop31antalya.veri
+```
+
+**Mac uyanık ve internete bağlı olmalı.** Uyurken çalışma kaçar, uyanınca bir kez yapılır.
+COP boyunca: Sistem Ayarları → Pil → Seçenekler → "Güç adaptörüne bağlıyken ekran kapalıyken
+otomatik uyumayı önle" açık, kapak açık ve adaptöre takılı. Veri 3,5 saatten eskiyse sayfa
+"Veri gecikmeli" der; sayaçlar en fazla 3 saat ileri gider. Her an açık bir makine için
+Türkiye'de küçük bir sunucu ya da evde sürekli açık bir bilgisayar aynı iki dosyayla çalışır.
+
+## 3) Alan adları (~10 dk + DNS bekleme)
+
+İki alan adı da SH Online İletişim'de ("hosting" paneli, isim sunucuları ns1–4.sh.com.tr).
+Her ikisinin DNS ekranında:
+
+- **Silin:** A @ → 216.239.32.21 ve CNAME www → ghs.googlehosted.com (eski, çalışmayan Google kaydı)
+- **Ekleyin:**
+
+| Tip   | Host | Cevap              |
+|-------|------|--------------------|
+| A     | @    | 185.199.108.153    |
+| A     | @    | 185.199.109.153    |
+| A     | @    | 185.199.110.153    |
+| A     | @    | 185.199.111.153    |
 | CNAME | www  | bsgumus.github.io  |
 
-3. DNS oturunca (genelde 15–60 dk) Pages ayarında **Enforce HTTPS** kutusunu işaretleyin.
+- **Dokunmayın:** MX ve TXT (google-site-verification) kayıtları.
+
+Sonra depolara alan adını tanıtın (ya da GitHub'da **Settings → Pages → Custom domain**):
+
+```bash
+~/.local/bin/gh api -X PUT repos/bsgumus/cop31antalya/pages -f cname=cop31antalya.com
+```
+```bash
+~/.local/bin/gh api -X PUT repos/bsgumus/cop31antalya-tr/pages -f cname=cop31antalya.tr
+```
+
+DNS oturup sertifika gelince (genelde 15–60 dk) **Enforce HTTPS** açılır.
 
 ## 4) Kontrol
 
@@ -63,6 +96,7 @@ depoya her `index.html` değişikliği de yeniden yayınlar.
   (`&tema=acik` ile açık tema)
 - `https://cop31antalya.com/?mod=widget`: haber sitelerine gömülecek küçük sürüm.
   Gömme kodu sayfanın "Paylaş ve kullan" bölümünde.
+- `https://cop31antalya.tr/...`: aynı sayfaya yönlenir.
 
 ---
 
@@ -98,15 +132,14 @@ depoya her `index.html` değişikliği de yeniden yayınlar.
   eksik verip sonraki saatte tamamlıyor. 4 Kasım ölçümü: ilk değer %22–26 düşük,
   45 dakikada ~%5, 60 dakikada ~%1,6, 75 dakikadan sonra ~%1 düşük; düzeltmeler bütün
   kaynaklara yayılıyor. Bu yüzden `guncelle.py` 75 dakikadan yeni aralıkları özete
-  almaz (`KESINLESME`). GitHub'ın zamanlayıcısı da çalışmayı 5–20 dakika geciktirebiliyor;
-  son veri sayfada genelde 75–125 dakika geriden gelir. Sayaçlar arada son kesin
+  almaz (`KESINLESME`); son veri sayfada genelde 75–95 dakika geriden gelir. Sayaçlar arada son kesin
   15 dakikanın hızıyla ilerler, en fazla 3 saat ileri gider. Saatlerce süren küçük
   düzeltmeler için dünün verisi bugün boyunca her çalışmada yeniden çekilir.
-- **TEİAŞ'a ulaşılamazsa:** o çalışma kırmızı biter ve GitHub size e-posta atar.
+- **TEİAŞ'a ulaşılamazsa:** hata günlüğe yazılır (`~/Library/Logs/cop31antalya-veri.log`).
   Site son veriyle yayında kalır; son veri 3,5 saatten eskiyse sayfada
   "Veri gecikmeli" yazar.
-- **ICE ya da ECB'ye ulaşılamazsa:** çalışma düşmez, Actions günlüğüne uyarı yazılır ve
-  son bilinen fiyat ya da kur kullanılır. ICE'nin kullandığımız adresi
+- **ICE ya da ECB'ye ulaşılamazsa:** çalışma düşmez,
+  son bilinen fiyat ya da kur kullanılır (uyarı günlüğe yazılır). ICE'nin kullandığımız adresi
   (`marketdata/api/productguide/charting/...`) web sitesinin kendi grafik ucu;
   resmî bir API değil, değişirse gaz bedeli son fiyatla donar.
 - **ICE verisi açık lisanslı değil:** ice.com'daki gecikmeli fiyat herkese açık ama
@@ -115,8 +148,8 @@ depoya her `index.html` değişikliği de yeniden yayınlar.
 - **Veri geçmişi:** her çalışma `data/` klasörünü depoya kaydeder; commit geçmişi
   aynı zamanda verinin kaydıdır.
 - **COP bittikten sonra:** sayaç `COP_BIT` anında durur ve "COP31 boyunca" toplamlarını
-  gösterir. İş akışını **Actions → Veri güncelle ve yayınla → ⋯ → Disable workflow**
-  ile kapatabilirsiniz.
+  gösterir. Güncelleyiciyi `launchctl bootout gui/$(id -u)/com.cop31antalya.veri` ile
+  durdurabilirsiniz; site son haliyle yayında kalır.
 
 ## Geçmiş veri arşivi (sitede kullanılmıyor)
 
