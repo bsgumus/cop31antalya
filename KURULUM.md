@@ -88,6 +88,21 @@ Sonra depolara alan adını tanıtın (ya da GitHub'da **Settings → Pages → 
 
 DNS oturup sertifika gelince (genelde 15–60 dk) **Enforce HTTPS** açılır.
 
+### cop31antalya.org (Porkbun, yapıldı 6 Kasım)
+
+Porkbun'un ücretsiz URL yönlendirmesi: **URL Forwarding** → `cop31antalya.org` →
+`https://cop31antalya.com`, kalıcı (301), yol dahil, joker (alt alan adları da). DNS'te kök
+ALIAS ve `*` CNAME → `uixie.porkbun.com` (yönlendirmenin kendi kayıtları), `www` CNAME →
+`uixie.porkbun.com` (eskiden çalışmayan Google kaydıydı). HTTPS'i Porkbun sağlıyor
+(`_acme-challenge` TXT kayıtları onun; silmeyin). Google doğrulama TXT'si duruyor.
+
+### cop31antalya.tr (ertelendi)
+
+SH paneli bu alan adı için DNS yönetimi sunmuyor (yalnız .com'da var). Seçenekler: SH'ye destek
+talebi (kayıtları onlar girer ya da DNS yönetimini açarlar) veya isim sunucularını Cloudflare'e
+taşımak. Yönlendirme deposu (`bsgumus/cop31antalya-tr`) hazır; DNS değişince
+`gh api -X PUT repos/bsgumus/cop31antalya-tr/pages -f cname=cop31antalya.tr` yeterli.
+
 ## 4) Kontrol
 
 - `https://cop31antalya.com/`: ana sayfa (Türkçe ya da tarayıcı diline göre İngilizce)
@@ -96,7 +111,7 @@ DNS oturup sertifika gelince (genelde 15–60 dk) **Enforce HTTPS** açılır.
   (`&tema=acik` ile açık tema)
 - `https://cop31antalya.com/?mod=widget`: haber sitelerine gömülecek küçük sürüm.
   Gömme kodu sayfanın "Paylaş ve kullan" bölümünde.
-- `https://cop31antalya.tr/...`: aynı sayfaya yönlenir.
+- `https://cop31antalya.org/...` ve `www`: aynı sayfaya kalıcı (301) yönlenir.
 
 ---
 
