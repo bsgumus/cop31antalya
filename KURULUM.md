@@ -1,4 +1,4 @@
-# cop31antalya.com — Yayına Alma Rehberi
+# cop31antalya.org — Yayına Alma Rehberi
 
 Canlı elektrik sayacı: COP31 boyunca rüzgâr ve güneşten üretim, yakılan kömür, CO₂,
 ithal kömür faturası ve gazın TTF fiyatıyla bedeli. Üretim TEİAŞ YTBS'nin 15 dakikalık
@@ -25,8 +25,8 @@ bağlanmaz; herkes aynı statik JSON'u okur.
 
 - `bsgumus/cop31antalya`: site, veri ve yayın iş akışı (`.github/workflows/veri.yml`, her
   gönderimde Pages'e yayınlar). Geçici adres: https://bsgumus.github.io/cop31antalya/
-- `bsgumus/cop31antalya-tr`: cop31antalya.tr'yi aynı sayfa ve parametrelerle .com'a yönlendiren
-  küçük sayfa (`../cop31antalya-tr` klasörü).
+- `bsgumus/cop31antalya-com`: cop31antalya.com'u aynı sayfa ve parametrelerle .org'a yönlendiren
+  küçük sayfa (`../cop31antalya-com` klasörü; GitHub Pages, `main` dalı, CNAME dosyası GitHub'ın).
 - Bu Mac'te GitHub CLI `~/.local/bin/gh` (bsgumus hesabıyla giriş yapıldı); git gönderimleri
   bunun üzerinden kimlik doğrular.
 
@@ -59,59 +59,63 @@ otomatik uyumayı önle" açık, kapak açık ve adaptöre takılı. Veri 3,5 sa
 "Veri gecikmeli" der; sayaçlar en fazla 3 saat ileri gider. Her an açık bir makine için
 Türkiye'de küçük bir sunucu ya da evde sürekli açık bir bilgisayar aynı iki dosyayla çalışır.
 
-## 3) Alan adları (~10 dk + DNS bekleme)
+## 3) Alan adları
 
-İki alan adı da SH Online İletişim'de ("hosting" paneli, isim sunucuları ns1–4.sh.com.tr).
-Her ikisinin DNS ekranında:
+**Ana adres cop31antalya.org** (6 Kasım'da .com'dan değiştirildi: .org'un sertifikası dakikalar
+içinde geldi, .com'unki saatlerce "authorization_pending"de kaldı).
 
-- **Silin:** A @ → 216.239.32.21 ve CNAME www → ghs.googlehosted.com (eski, çalışmayan Google kaydı)
-- **Ekleyin:**
+| Alan adı | Kayıt firması / DNS | Ne yapıyor |
+|----------|---------------------|------------|
+| cop31antalya.org | Porkbun | **Site.** Depo `bsgumus/cop31antalya`, HTTPS zorunlu, sertifika GitHub'ın (Let's Encrypt, kendiliğinden yenilenir) |
+| cop31antalya.com | SH Online ("Sadece Hosting") | .org'a yönlenir. Depo `bsgumus/cop31antalya-com` |
+| cop31antalya.tr | SH Online | Ertelendi (aşağıda) |
+
+### cop31antalya.org (Porkbun DNS)
 
 | Tip   | Host | Cevap              |
 |-------|------|--------------------|
-| A     | @    | 185.199.108.153    |
-| A     | @    | 185.199.109.153    |
-| A     | @    | 185.199.110.153    |
-| A     | @    | 185.199.111.153    |
+| ALIAS | @    | bsgumus.github.io  |
 | CNAME | www  | bsgumus.github.io  |
 
-- **Dokunmayın:** MX ve TXT (google-site-verification) kayıtları.
-
-Sonra depolara alan adını tanıtın (ya da GitHub'da **Settings → Pages → Custom domain**):
+Dokunmayın: Google doğrulama TXT'si ve iki `_acme-challenge` TXT'si. Porkbun'un eski URL
+yönlendirmesi (`*` CNAME → `uixie.porkbun.com` ve URL Forwarding'deki kayıt) yalnız diğer alt
+alan adlarını etkiler; istenirse Porkbun panelinden silinebilir (silerken tarayıcı onay sorar).
+GitHub tarafı:
 
 ```bash
-~/.local/bin/gh api -X PUT repos/bsgumus/cop31antalya/pages -f cname=cop31antalya.com
+~/.local/bin/gh api -X PUT repos/bsgumus/cop31antalya/pages -f cname=cop31antalya.org
 ```
+
+### cop31antalya.com (SH DNS)
+
+A @ → 185.199.108.153, .109, .110, .111 ve CNAME www → bsgumus.github.io (MX ve TXT olduğu gibi).
+`cop31antalya-com` deposu her yolu `https://cop31antalya.org` + aynı yol ve parametrelere
+yönlendirir. HTTP ile çalışıyor; HTTPS sertifikası 6 Kasım gecesi hâlâ bekliyordu. Gelince:
+
 ```bash
-~/.local/bin/gh api -X PUT repos/bsgumus/cop31antalya-tr/pages -f cname=cop31antalya.tr
+~/.local/bin/gh api -X PUT repos/bsgumus/cop31antalya-com/pages -F https_enforced=true
 ```
 
-DNS oturup sertifika gelince (genelde 15–60 dk) **Enforce HTTPS** açılır.
-
-### cop31antalya.org (Porkbun, yapıldı 6 Kasım)
-
-Porkbun'un ücretsiz URL yönlendirmesi: **URL Forwarding** → `cop31antalya.org` →
-`https://cop31antalya.com`, kalıcı (301), yol dahil, joker (alt alan adları da). DNS'te kök
-ALIAS ve `*` CNAME → `uixie.porkbun.com` (yönlendirmenin kendi kayıtları), `www` CNAME →
-`uixie.porkbun.com` (eskiden çalışmayan Google kaydıydı). HTTPS'i Porkbun sağlıyor
-(`_acme-challenge` TXT kayıtları onun; silmeyin). Google doğrulama TXT'si duruyor.
+Durum: `~/.local/bin/gh api repos/bsgumus/cop31antalya-com/pages --jq .https_certificate.state`
+(`approved` olunca açılabilir). Uzun süre beklerse alan adını kaldırıp yeniden eklemek
+(`-f cname=` boş, sonra yeniden `cop31antalya.com`) isteği baştan başlatır.
 
 ### cop31antalya.tr (ertelendi)
 
 SH paneli bu alan adı için DNS yönetimi sunmuyor (yalnız .com'da var). Seçenekler: SH'ye destek
-talebi (kayıtları onlar girer ya da DNS yönetimini açarlar) veya isim sunucularını Cloudflare'e
-taşımak. Yönlendirme deposu (`bsgumus/cop31antalya-tr`) hazır; DNS değişince
-`gh api -X PUT repos/bsgumus/cop31antalya-tr/pages -f cname=cop31antalya.tr` yeterli.
+talebi (kayıtları onlar girer ya da DNS yönetimini açarlar) veya isim sunucularını başka bir DNS'e
+taşımak. Yapılınca `cop31antalya-com` deposunun kopyası `cop31antalya-tr` adıyla açılıp
+`cname=cop31antalya.tr` verilir.
 
 ## 4) Kontrol
 
-- `https://cop31antalya.com/`: ana sayfa (Türkçe ya da tarayıcı diline göre İngilizce)
-- `https://cop31antalya.com/?lang=en`: İngilizce
-- `https://cop31antalya.com/?mod=ekran`: stant ve salon ekranları için tam ekran, koyu
+- `https://cop31antalya.org/`: ana sayfa (Türkçe ya da tarayıcı diline göre İngilizce)
+- `https://cop31antalya.org/?lang=en`: İngilizce
+- `https://cop31antalya.org/?mod=ekran`: stant ve salon ekranları için tam ekran, koyu
   (`&tema=acik` ile açık tema)
-- `https://cop31antalya.com/?mod=widget`: haber sitelerine gömülecek küçük sürüm.
+- `https://cop31antalya.org/?mod=widget`: haber sitelerine gömülecek küçük sürüm.
   Gömme kodu sayfanın "Paylaş ve kullan" bölümünde.
-- `https://cop31antalya.org/...` ve `www`: aynı sayfaya kalıcı (301) yönlenir.
+- `http://`, `www.` ve `cop31antalya.com/...` aynı sayfaya yönlenir.
 
 ---
 
