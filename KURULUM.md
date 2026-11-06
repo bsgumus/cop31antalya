@@ -97,8 +97,8 @@ Mac'e geri dönmek için 2. bölümdeki kurulum komutu yeniden çalıştırılı
 
 **Tur aralığı:** varsayılan 15 dakika (07, 22, 37, 52). Pil ya da veri için seyrekleştirmek:
 `ARALIK=30 bash ~/cop31antalya/veri/telefon.sh` (15, 20, 30 ya da 60). TEİAŞ 15 dakikalık veri
-yayımladığı ve site 75 dakika beklediği için 15'ten sık çalıştırmak yeni bir şey getirmez. Sayfadaki
-son veri gecikmesi aşağı yukarı 75 dakika + aralık; 3,5 saati geçince "Veri gecikmeli" yazdığından
+yayımladığı ve site bir saat beklediği için 15'ten sık çalıştırmak yeni bir şey getirmez. Sayfadaki
+son veri gecikmesi aşağı yukarı 60 dakika + aralık; 3,5 saati geçince "Veri gecikmeli" yazdığından
 60 dakikadan seyrek önerilmez. Bir tur yaklaşık 150–200 KB indirir (15 dakikada bir: günde ~15–20 MB).
 
 ## 3) Alan adları
@@ -192,8 +192,9 @@ taşımak. Yapılınca `cop31antalya-com` deposunun kopyası `cop31antalya-tr` a
 - **Gecikme:** TEİAŞ bir aralığı bittikten 15–30 dakika sonra yayımlıyor, ilk değeri
   eksik verip sonraki saatte tamamlıyor. 4 Kasım ölçümü: ilk değer %22–26 düşük,
   45 dakikada ~%5, 60 dakikada ~%1,6, 75 dakikadan sonra ~%1 düşük; düzeltmeler bütün
-  kaynaklara yayılıyor. Bu yüzden `guncelle.py` 75 dakikadan yeni aralıkları özete
-  almaz (`KESINLESME`); son veri sayfada genelde 75–95 dakika geriden gelir. Sayaçlar arada son kesin
+  kaynaklara yayılıyor. Bu yüzden `guncelle.py` 60 dakikadan yeni aralıkları özete
+  almaz (`KESINLESME`; 6 Kasım'da 75'ten indirildi, en yeni aralık ~%1,6 düşük kalabilir, bir
+  sonraki turda düzelir); 30 dakikalık turlarla son veri sayfada genelde 60–95 dakika geriden gelir. Sayaçlar arada son kesin
   15 dakikanın hızıyla ilerler, en fazla 3 saat ileri gider. Saatlerce süren küçük
   düzeltmeler için dünün verisi bugün boyunca her çalışmada yeniden çekilir.
 - **TEİAŞ'a ulaşılamazsa:** hata günlüğe yazılır (`~/Library/Logs/cop31antalya-veri.log`).

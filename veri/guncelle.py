@@ -44,8 +44,9 @@ COP_BIT = datetime(2026, 11, 21, tzinfo=TSI)  # 20 Kasım'ın sonu; müzakereler
 GERI_DOLDUR = date(2026, 11, 1)  # bu günden itibaren eksik günler çekilir
 # TEİAŞ yeni aralığı eksik yayımlayıp sonraki saatte tamamlıyor; düzeltmeler bütün kaynaklara yayılıyor.
 # 4 Kasım ölçümü: ilk değer %22-26 düşük, 30 dk sonra ~%7, 45 dk ~%5, 60 dk ~%1,6, 75-120 dk ~%1 düşük;
-# 3-4 saatlik aralıklar %0,3'ün altında oynuyor. Bundan yeni aralıklar özete girmez.
-KESINLESME = timedelta(minutes=75)
+# 3-4 saatlik aralıklar %0,3'ün altında oynuyor. Bundan yeni aralıklar özete girmez. 6 Kasım'da 75'ten
+# 60'a indirildi (kullanıcı tercihi): en yeni aralık ~%1,6 düşük kalabilir, bir sonraki turda düzelir.
+KESINLESME = timedelta(minutes=60)
 
 # Kömür katsayıları, Prizdeki Kömür yöntemi (TEİAŞ 2025): yakıt tablosundaki tonaj ÷ Rapor212 üretimi.
 # Taş kömürü, ithal kömür ve asfaltit yakıt tablosunda tek kalem; üçü MWh başına aynı miktarı yakıyor sayılır.

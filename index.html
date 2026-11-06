@@ -533,8 +533,8 @@ const METIN = {
     sssBaslik: "Sık sorulan sorular",
     sss: [
       ["Bu rakamlar resmî mi?", "Üretim verisi TEİAŞ'ın resmî Yük Tevzi Bilgi Sistemi'nden geliyor. Kömür, CO₂ ve maliyet rakamları bu verinin üzerine yapılan hesaplamalar: resmî istatistik değil, yöntemi aşağıda açıkça yazılı tahminler."],
-      ["Rakamlar neden bir saat kadar geriden geliyor?", "TEİAŞ yeni 15 dakikalık veriyi önce eksik yayımlıyor, sonraki saatte tamamlıyor. Yanlış rakam göstermemek için site her aralığı 75 dakika bekletiyor; aradaki süreyi sayaçlar son hızla ilerleyerek dolduruyor."],
-      ["Sayaçlar neden saniye saniye artıyor?", "Son kesinleşmiş 15 dakikanın hızıyla ilerletiliyorlar. Saniyelik artış bir tahmin; toplamlar her 15 dakikada gerçek veriyle düzeltiliyor."],
+      ["Rakamlar neden bir saat kadar geriden geliyor?", "TEİAŞ yeni 15 dakikalık veriyi önce eksik yayımlıyor, sonraki saatte tamamlıyor. Yanlış rakam göstermemek için site her aralığı bir saat bekletiyor; aradaki süreyi sayaçlar son hızla ilerleyerek dolduruyor."],
+      ["Sayaçlar neden saniye saniye artıyor?", "Son kesinleşmiş 15 dakikanın hızıyla ilerletiliyorlar. Saniyelik artış bir tahmin; toplamlar yarım saatte bir gerçek veriyle düzeltiliyor."],
       ["Doğalgaza ödenen rakam gerçek fatura mı?", "Hayır. Yakılan gazın Avrupa piyasa fiyatıyla (TTF) değeri. Türkiye gazın büyük kısmını fiyatı açıklanmayan uzun vadeli sözleşmelerle alıyor; TTF, gazın bugünkü piyasa değerini gösteren en yakın açık göstergedir."],
       ["Kömür tonajı nasıl bulunuyor?", "TEİAŞ'ın 2025'te santrallerde yakılan kömür miktarı aynı yılın kömürden elektrik üretimine bölünüyor: linyit için MWh başına yaklaşık 1,6 ton, ithal kömür için 0,37 ton. Bu katsayılar anlık üretimle çarpılıyor."],
       ["CO₂ hesabı neye dayanıyor?", "Enerji ve Tabii Kaynaklar Bakanlığı'nın 2023 yılı yakıta göre elektrik üretim emisyon faktörlerine. Her yakıtın üretimi kendi faktörüyle çarpılıyor."],
@@ -576,7 +576,7 @@ const METIN = {
     suruyor: "sürüyor", copGunu: "{n}. gün",
     ctBaslik: "COP başladığından bu yana", ctBaslikBitti: "COP31 boyunca",
     ctOnce: "COP31 {tarih}'da başlıyor. Bu kutu o günden itibaren COP boyunca biriken toplamları gösterecek.",
-    ctBekle: "İlk kesinleşmiş veri bekleniyor (TEİAŞ verisi yaklaşık 75 dakika geriden gelir).",
+    ctBekle: "İlk kesinleşmiş veri bekleniyor (TEİAŞ verisi yaklaşık bir saat geriden gelir).",
     ctAlt: "{bas}'dan bu yana · son veri {son} TSİ", ctAltBitti: "{bas}–{bit}, kesinleşmiş TEİAŞ verisiyle",
     pBaslik: "Paylaş ve kullan", pAlt: "Veriyi kaynak göstererek serbestçe kullanabilirsiniz.",
     pKartBaslik: "Günün kartı", pKartAciklama: "Sosyal medya için hazır görsel. Gün sürüyorsa o ana kadarki veriyi gösterir.",
@@ -587,7 +587,7 @@ const METIN = {
     pKopyala: "Kodu kopyala", pKopyalandi: "Kopyalandı", pEkran: "Ekran modu (stantlar için)",
     yBaslik: "Veri ve yöntem",
     yontem: [
-      "Veri: TEİAŞ Yük Tevzi Bilgi Sistemi'nin (YTBS) kaynak bazında 15 dakikalık üretim verisi; lisanssız santraller dahil. TEİAŞ yeni aralığı önce eksik yayımlayıp sonraki saatte tamamladığı için site 75 dakikadan yeni aralıkları beklemeye alıyor; sayfa 15 dakikada bir güncelleniyor.",
+      "Veri: TEİAŞ Yük Tevzi Bilgi Sistemi'nin (YTBS) kaynak bazında 15 dakikalık üretim verisi; lisanssız santraller dahil. TEİAŞ yeni aralığı önce eksik yayımlayıp sonraki saatte tamamladığı için site bir saatten yeni aralıkları beklemeye alıyor; sayfa yarım saatte bir güncelleniyor.",
       "Sayaçlar son kesinleşmiş 15 dakikanın hızıyla saniye saniye ilerletilir ve her yeni veriyle düzeltilir. Veri gelmezse en fazla 3 saat ileri gider, sonra durur.",
       "Yakılan kömür: TEİAŞ'ın 2025 yakıt tüketimi ile üretimi oranlanarak bulundu. Linyit için MWh başına {lin} ton; ithal kömür, taş kömürü ve asfaltit için {bir} ton (TEİAŞ bu üçünü tek kalemde veriyor).",
       "İthal kömür faturası: ithal kömür tonu × {f} $/ton (2025 ortalaması).",
@@ -655,8 +655,8 @@ const METIN = {
     sssBaslik: "Frequently asked questions",
     sss: [
       ["Are these official figures?", "Generation data comes from TEİAŞ's official Load Dispatch Information System. The coal, CO₂ and cost figures are calculations on top of that data: estimates with the method written out below, not official statistics."],
-      ["Why are the figures about an hour behind?", "TEİAŞ first publishes each new 15-minute interval incomplete and fills it in over the next hour. To avoid showing wrong numbers the site waits 75 minutes per interval; the counters fill the gap by advancing at the latest rate."],
-      ["Why do the counters tick every second?", "They advance at the rate of the latest settled 15 minutes. The per-second increase is an estimate; totals are corrected with real data every 15 minutes."],
+      ["Why are the figures about an hour behind?", "TEİAŞ first publishes each new 15-minute interval incomplete and fills it in over the next hour. To avoid showing wrong numbers the site waits an hour per interval; the counters fill the gap by advancing at the latest rate."],
+      ["Why do the counters tick every second?", "They advance at the rate of the latest settled 15 minutes. The per-second increase is an estimate; totals are corrected with real data every 30 minutes."],
       ["Is the gas figure an actual bill?", "No. It values the gas burned at the European market price (TTF). Türkiye buys most of its gas under long-term contracts whose prices are not public; TTF is the closest open indicator of the gas's market value today."],
       ["How is coal tonnage worked out?", "TEİAŞ's 2025 coal consumption in power plants is divided by the same year's coal-fired generation: about 1.6 tonnes per MWh for lignite and 0.37 tonnes for imported coal. These factors are multiplied by live generation."],
       ["What is the CO₂ calculation based on?", "The Ministry of Energy and Natural Resources' 2023 emission factors for electricity generation by fuel. Each fuel's generation is multiplied by its own factor."],
@@ -698,7 +698,7 @@ const METIN = {
     suruyor: "ongoing", copGunu: "day {n}",
     ctBaslik: "Since COP31 began", ctBaslikBitti: "During COP31",
     ctOnce: "COP31 starts on {tarih}. From then on this box shows the running totals for the conference.",
-    ctBekle: "Waiting for the first settled data (TEİAŞ data arrives about 75 minutes late).",
+    ctBekle: "Waiting for the first settled data (TEİAŞ data arrives about an hour late).",
     ctAlt: "Since {bas} · latest data {son} TRT", ctAltBitti: "{bas}–{bit}, settled TEİAŞ data",
     pBaslik: "Share and reuse", pAlt: "Free to use with attribution.",
     pKartBaslik: "Card of the day", pKartAciklama: "A ready-made image for social media. For a day in progress it shows the data so far.",
@@ -709,7 +709,7 @@ const METIN = {
     pKopyala: "Copy code", pKopyalandi: "Copied", pEkran: "Screen mode (for booths)",
     yBaslik: "Data and method",
     yontem: [
-      "Data: 15-minute generation by source from TEİAŞ's Load Dispatch Information System (YTBS), including unlicensed plants. TEİAŞ first publishes each new interval incomplete and fills it in over the next hour, so the site waits 75 minutes before using an interval; the page updates every 15 minutes.",
+      "Data: 15-minute generation by source from TEİAŞ's Load Dispatch Information System (YTBS), including unlicensed plants. TEİAŞ first publishes each new interval incomplete and fills it in over the next hour, so the site waits an hour before using an interval; the page updates every 30 minutes.",
       "The counters advance second by second at the rate of the latest settled 15 minutes and are corrected with each new data point. If data stops, they run ahead for at most 3 hours and then stop.",
       "Coal burned: TEİAŞ 2025 fuel consumption divided by generation. {lin} tonnes per MWh for lignite; {bir} tonnes for imported coal, hard coal and asphaltite (TEİAŞ reports these three as one item).",
       "Imported coal bill: imported coal tonnes × ${f}/tonne (2025 average).",
@@ -803,7 +803,7 @@ function donem(simdi) {
   return { tur: simdi < bit ? "cop" : "bitti", veri: D.copDonemi, bas, bit };
 }
 
-// Dönem toplamı + son hız × geçen süre. Son kesin veri normalde 75-125 dk geride; veri durursa en fazla 3 saat ileri gider.
+// Dönem toplamı + son hız × geçen süre. Son kesin veri normalde 60-100 dk geride; veri durursa en fazla 3 saat ileri gider.
 function sayac(p, toplam, saatlikHiz, simdi) {
   const son = p.veri.son ? Date.parse(p.veri.son) : p.bas;
   const ust = Math.min(simdi, p.bit, Date.parse(D.simdi.zaman) + 3 * SAAT);
