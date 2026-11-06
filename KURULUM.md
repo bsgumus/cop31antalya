@@ -38,6 +38,9 @@ cd ~/fabledeneme/cop31antalya && git add -A && git commit -m "Sayfa güncellemes
 
 ## 2) Veri güncelleyici (bu Mac)
 
+> **Şu an veriyi telefon gönderiyor** (6 Kasım 10:02'den beri). Mac'teki launchd görevi kaldırıldı;
+> gerekirse aşağıdaki kurulum komutuyla geri gelir.
+
 `veri/yayinla.sh` veriyi çekip değişiklik varsa GitHub'a gönderir. launchd her saatin 07, 22,
 37 ve 52. dakikasında çalıştırır (`veri/com.cop31antalya.veri.plist`). Kurulum:
 
