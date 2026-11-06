@@ -275,6 +275,10 @@ body.widget .gunes-gunu, body.widget .gunler, body.widget .paylas, body.widget .
 .lejant .cizgi { width: 14px; height: 2px; border-radius: 1px; background: var(--ink); display: inline-block; }
 .lejant .kesik { width: 16px; height: 2px; display: inline-block; background: repeating-linear-gradient(90deg, currentColor 0 4px, transparent 4px 7px); }
 .lejant .daire { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+/* İthal kömür: kömür kahverengisi, çapraz taralı (yerli kömür düz). İki ayrı kahverengi tonu koyu temada
+   doğrulayıcıdan geçmiyor; aynı renk + tarama ikisini hem renk körlüğünde hem baskıda ayırır. */
+.tarali { color: var(--g-komur); background: repeating-linear-gradient(135deg, currentColor 0 2px, transparent 2px 4px), color-mix(in srgb, currentColor 30%, transparent); }
+.ipucu .anahtar.tarali { height: 8px; }
 svg.grafik .imlec { stroke: var(--ink-2); stroke-width: 1; pointer-events: none; }
 body.widget main { padding: 12px; max-width: none; }
 body.widget h1 { font-size: clamp(16px, 3.6vw, 22px); margin: 6px 0 0; max-width: none; }
@@ -529,7 +533,7 @@ const METIN = {
     sBaslik: "Son veri", sAlt: "{a}–{b} TSİ, 15 dakikalık ortalama",
     geriGunCop: " · COP31'in {n}. günü", canliyaDon: "← Canlı sayaca dön", durumGun: "Arşiv · {tarih}", gunBaglanti: "Bu günün bağlantısı",
     sBaslikGun: "Günün ortalama karışımı", sAltGun: "{tarih}, 24 saatlik ortalama", tuketimGun: "Ortalama karbon yoğunluğu {g} g CO₂/kWh",
-    ggAltGun: "{tarih}: tüketim ve bunun rüzgârla güneşten karşılanan kısmı, GW", gBaslikGun: "Saat saat üretim", gAltGun: "{tarih}, saatlik ortalama, GW",
+    ggAltGun: "{tarih}, GW: tüketim ve bunun güneş, rüzgâr ve kömürle karşılanan kısmı; aradaki boşluk doğalgaz, hidro ve diğerleri", gBaslikGun: "Saat saat üretim", gAltGun: "{tarih}, saatlik ortalama, GW",
     sssBaslik: "Sık sorulan sorular",
     sss: [
       ["Bu rakamlar resmî mi?", "Üretim verisi TEİAŞ'ın resmî Yük Tevzi Bilgi Sistemi'nden geliyor. Kömür, CO₂ ve maliyet rakamları bu verinin üzerine yapılan hesaplamalar: resmî istatistik değil, yöntemi aşağıda açıkça yazılı tahminler."],
@@ -548,7 +552,7 @@ const METIN = {
     pngIndir: "Grafiği PNG olarak indir", csvGunluk: "Günlük veri (CSV)", csvDakika: "15 dakikalık veri (CSV)",
     indirNot: "Kaynak göstererek serbestçe kullanabilirsiniz. 15 dakikalık dosya, tablodaki günlerin TEİAŞ ham verisini içerir.",
     pngKaynak: "cop31antalya.org · Kaynak: TEİAŞ YTBS",
-    ggBaslik: "Güneş ve rüzgârın günü", ggAlt: "Son 24 saat: tüketim ve bunun rüzgârla güneşten karşılanan kısmı, GW",
+    ggBaslik: "Güneş ve rüzgârın günü", ggAlt: "Son 24 saat, GW: tüketim ve bunun güneş, rüzgâr ve kömürle karşılanan kısmı; aradaki boşluk doğalgaz, hidro ve diğerleri",
     ggManset: "Rüzgâr ve güneşin tüketimdeki en yüksek payı: {p} (saat {s}) · son 24 saatin ortalaması {o}",
     ggMansetGun: "Rüzgâr ve güneşin tüketimdeki en yüksek payı: {p} (saat {s}) · günün ortalaması {o}",
     emBaslik: "Türkiye'nin emisyon hedefleri", emAlt: "Net sera gazı emisyonu (arazi kullanımı ve ormancılık dahil), milyon ton CO₂ eşdeğeri",
@@ -569,7 +573,7 @@ const METIN = {
     kopyalandi: "Kopyalandı",
     donemYazi: { onizleme: "Bugün (saat {s} itibarıyla)", cop: "COP31 başladığından bu yana (saat {s} itibarıyla)", bitti: "COP31 boyunca (9–20 Kasım)", gun: "{tarih} günü" },
     paylasCumle: "{d} Türkiye'de elektrik üretmek için {komur} ton kömür yakıldı; bu yaklaşık {kamyon} kamyon yük demek.",
-    tuketimAd: "Tüketim", rgPayAd: "Rüzgâr + güneş payı",
+    tuketimAd: "Tüketim", rgPayAd: "Rüzgâr + güneş payı", komurPayAd: "Kömür payı", yerliKomurAd: "Yerli kömür", ithalKomurAd: "İthal kömür",
     saat: "Saat", toplam: "Toplam", kismi: "kısmi saat",
     dBaslik: "Gün gün", dAltCop: "COP31 günleri", dAltOnce: "Son günler",
     dSutun: ["Gün", "Üretim (GWh)", "Rüzgâr + güneş", "Yakılan kömür (ton)", "CO₂ (ton)", "İthal kömüre ödenen", "Doğalgaza ödenen"],
@@ -595,7 +599,7 @@ const METIN = {
       "Doğalgaz: TEİAŞ'ın 2025 yakıt tüketimi gaz santrallerinin üretimine bölündüğünde elektrik MWh'i başına {m3} m³ gaz çıkıyor (kojenerasyondaki ısı üretimi dahil). Gazın enerjisi BOTAŞ'ın üst ısıl değeriyle (9.155 kcal/m³) hesaplandı.",
       "Doğalgaza ödenen: her gün, o gün yakılan gaz × TTF fiyatı × ECB EUR/USD referans kuru. TTF fiyatı, ICE Endex Dutch TTF ön ay vadeli kontratının ice.com'daki gecikmeli fiyatı (şu an {vade} vadesi, {ttf} €/MWh); kur {kur}. Bugün elektrik MWh'i başına yaklaşık {gazMwh} $. Bu, yakılan gazın Avrupa piyasa fiyatıyla değeri; BOTAŞ'ın uzun vadeli sözleşme fiyatları bundan farklı.",
       "CO₂: ETKB'nin 2023 yılı yakıta göre elektrik üretim emisyon faktörleri, ton CO₂/MWh: {co2Liste}. Hidro, rüzgâr, güneş, jeotermal, biyokütle ve nükleer sıfır sayılır; nafta ve LPG için motorin faktörü kullanılır.",
-      "Gruplar: hidro = barajlı + akarsu; doğalgaz = doğalgaz + LNG; kömür = linyit + ithal kömür + taş kömürü + asfaltit; diğer = nükleer, fuel-oil, motorin, nafta, LPG ve atık ısı.",
+      "Gruplar: hidro = barajlı + akarsu; doğalgaz = doğalgaz + LNG; kömür = yerli (linyit, taş kömürü, asfaltit) + ithal kömür; diğer = nükleer, fuel-oil, motorin, nafta, LPG ve atık ısı.",
       "Emisyon hedefleri grafiği: gerçekleşen net emisyon (arazi kullanımı ve ormancılık dahil) TÜİK sera gazı envanterinden; referans senaryolar ve hedefler Türkiye'nin INDC, birinci NDC ve NDC 3.0 belgelerinden. Yeni referans senaryonun yalnız 2018 başlangıcı ve 2035 değeri gösteriliyor.",
       "Bu site bağımsızdır; UNFCCC ya da COP31 Başkanlığı ile bağlantısı yoktur.",
     ],
@@ -651,7 +655,7 @@ const METIN = {
     sBaslik: "Latest data", sAlt: "{a}–{b} TRT, 15-minute average",
     geriGunCop: " · Day {n} of COP31", canliyaDon: "← Back to the live counter", durumGun: "Archive · {tarih}", gunBaglanti: "Link to this day",
     sBaslikGun: "Average mix of the day", sAltGun: "{tarih}, 24-hour average", tuketimGun: "Average carbon intensity {g} g CO₂/kWh",
-    ggAltGun: "{tarih}: demand and the part of it met by wind and solar, GW", gBaslikGun: "Generation hour by hour", gAltGun: "{tarih}, hourly average, GW",
+    ggAltGun: "{tarih}, GW: demand and the part of it met by solar, wind and coal; the gap is gas, hydro and others", gBaslikGun: "Generation hour by hour", gAltGun: "{tarih}, hourly average, GW",
     sssBaslik: "Frequently asked questions",
     sss: [
       ["Are these official figures?", "Generation data comes from TEİAŞ's official Load Dispatch Information System. The coal, CO₂ and cost figures are calculations on top of that data: estimates with the method written out below, not official statistics."],
@@ -670,7 +674,7 @@ const METIN = {
     pngIndir: "Download chart as PNG", csvGunluk: "Daily data (CSV)", csvDakika: "15-minute data (CSV)",
     indirNot: "Free to use with attribution. The 15-minute file holds TEİAŞ raw data for the days in the table.",
     pngKaynak: "cop31antalya.org · Source: TEİAŞ YTBS",
-    ggBaslik: "The day of sun and wind", ggAlt: "Last 24 hours: demand and the part of it met by wind and solar, GW",
+    ggBaslik: "The day of sun and wind", ggAlt: "Last 24 hours, GW: demand and the part of it met by solar, wind and coal; the gap is gas, hydro and others",
     ggManset: "Highest wind and solar share of demand: {p} (at {s}) · {o} on average over the last 24 hours",
     ggMansetGun: "Highest wind and solar share of demand: {p} (at {s}) · {o} on average that day",
     emBaslik: "Türkiye's emission targets", emAlt: "Net greenhouse gas emissions (including land use and forestry), million tonnes CO₂ equivalent",
@@ -691,7 +695,7 @@ const METIN = {
     kopyalandi: "Copied",
     donemYazi: { onizleme: "Today (as of {s} TRT)", cop: "Since COP31 began (as of {s} TRT)", bitti: "During COP31 (9–20 November)", gun: "On {tarih}" },
     paylasCumle: "{d}, {komur} tonnes of coal were burned to generate electricity in Türkiye, roughly {kamyon} truckloads.",
-    tuketimAd: "Demand", rgPayAd: "Wind + solar share",
+    tuketimAd: "Demand", rgPayAd: "Wind + solar share", komurPayAd: "Coal share", yerliKomurAd: "Domestic coal", ithalKomurAd: "Imported coal",
     saat: "Hour", toplam: "Total", kismi: "partial hour",
     dBaslik: "Day by day", dAltCop: "COP31 days", dAltOnce: "Recent days",
     dSutun: ["Day", "Generation (GWh)", "Wind + solar", "Coal burned (t)", "CO₂ (t)", "Paid for imported coal", "Paid for gas"],
@@ -717,7 +721,7 @@ const METIN = {
       "Gas: TEİAŞ 2025 fuel consumption divided by gas-fired generation gives {m3} m³ of gas per MWh of electricity (including heat production in CHP plants). Gas energy uses BOTAŞ's gross calorific value (9,155 kcal/m³).",
       "Paid for gas: for each day, gas burned that day × TTF price × ECB EUR/USD reference rate. The TTF price is the delayed price of ICE Endex's Dutch TTF front-month futures contract on ice.com (currently the {vade} contract, €{ttf}/MWh); the rate is {kur}. Today about ${gazMwh} per MWh of electricity. This values the gas at European market prices; BOTAŞ's long-term contract prices differ.",
       "CO₂: ETKB's 2023 emission factors for electricity generation by fuel, tonnes CO₂/MWh: {co2Liste}. Hydro, wind, solar, geothermal, biomass and nuclear count as zero; naphtha and LPG use the diesel factor.",
-      "Groups: hydro = reservoir + run-of-river; gas = natural gas + LNG; coal = lignite + imported coal + hard coal + asphaltite; other = nuclear, fuel oil, diesel, naphtha, LPG and waste heat.",
+      "Groups: hydro = reservoir + run-of-river; gas = natural gas + LNG; coal = domestic (lignite, hard coal, asphaltite) + imported coal; other = nuclear, fuel oil, diesel, naphtha, LPG and waste heat.",
       "Emission targets chart: actual net emissions (including land use and forestry) from TÜİK's greenhouse gas inventory; reference scenarios and targets from Türkiye's INDC, first NDC and NDC 3.0. Only the 2018 starting point and 2035 value of the new reference scenario are shown.",
       "This site is independent and is not affiliated with the UNFCCC or the COP31 Presidency.",
     ],
@@ -1055,9 +1059,9 @@ const svgEl = (ad, ozellik, ebeveyn) => { const e = document.createElementNS(NS,
 // İpucu kutusu: başlık ve satırlar (renk anahtarı, önde değer, arkada ad).
 function ipucuYaz(baslik, satirlar) {
   const bas = document.createElement("div"); bas.className = "bas"; bas.textContent = baslik;
-  $("ipucu").replaceChildren(bas, ...satirlar.map(({ renk, deger, ad, sinif }) => {
+  $("ipucu").replaceChildren(bas, ...satirlar.map(({ renk, deger, ad, sinif, anahtar }) => {
     const s = document.createElement("div"); s.className = "satir" + (sinif ? " " + sinif : "");
-    const a = document.createElement("span"); a.className = "anahtar"; if (renk) a.style.background = renk;
+    const a = document.createElement("span"); a.className = "anahtar" + (anahtar ? " " + anahtar : ""); if (renk) a.style.background = renk;
     const b = document.createElement("b"); b.textContent = deger;
     const c = document.createElement("span"); c.textContent = ad;
     s.append(a, b, c); return s;
@@ -1071,20 +1075,24 @@ function ipucuGoster(cx, cy) {
   ipucu.style.top = Math.min(innerHeight - r.height - 8, Math.max(8, cy - r.height / 2)) + "px";
 }
 
-// "Güneş ve rüzgârın günü": tüketim çizgisi ve altında rüzgârla güneşin karşıladığı kısım (15 dk, son 24 saat).
+// "Güneş ve rüzgârın günü": tüketim çizgisi ve altında güneş, rüzgâr, yerli ve ithal kömürün karşıladığı kısım
+// (15 dk, son 24 saat). Yığın alttan üste güneş, rüzgâr, yerli kömür, ithal kömür: güneş kömürün kahverengisine
+// komşu olunca koyu temada ayrışmıyor (doğrulayıcı). Tüketimle yığının arasındaki boşluk doğalgaz, hidro ve diğerleri.
 function gunesGunuCiz(seri = D.seri) {
   const t = T();
   $("gg-baslik").textContent = t.ggBaslik;
   $("gg-alt").textContent = ARSIV ? doldur(t.ggAltGun, { tarih: gunYaz(ARSIV.tarih) }) : t.ggAlt;
-  $("gg-lejant").replaceChildren(...[["cizgi", "var(--ink)", t.tuketimAd], ["sw", "var(--g-gunes)", t.grup.gunes], ["sw", "var(--g-ruzgar)", t.grup.ruzgar]].map(([sinif, renk, ad]) => {
+  $("gg-lejant").replaceChildren(...[["cizgi", "var(--ink)", t.tuketimAd], ["sw", "var(--g-gunes)", t.grup.gunes], ["sw", "var(--g-ruzgar)", t.grup.ruzgar],
+    ["sw", "var(--g-komur)", t.yerliKomurAd], ["sw tarali", "", t.ithalKomurAd]].map(([sinif, renk, ad]) => {
     const li = document.createElement("li");
-    const k = document.createElement("span"); k.className = sinif; k.style.background = renk;
+    const k = document.createElement("span"); k.className = sinif; if (renk) k.style.background = renk;
     const s = document.createElement("span"); s.textContent = ad;
     li.append(k, s); return li;
   }));
   const n = seri.zaman.length;
   if (n < 2) return;
-  const zaman = seri.zaman.map(Date.parse), gunes = seri.mw.gunes, ruzgar = seri.mw.ruzgar, yuk = seri.yuk;
+  const zaman = seri.zaman.map(Date.parse), { gunes, ruzgar, ithalkomur: ithal } = seri.mw, yuk = seri.yuk;
+  const yerli = seri.mw.linyit.map((v, i) => v + seri.mw.taskomur[i]);
   // Manşet: rüzgâr ve güneşin birlikte karşıladığı en yüksek pay ve dönemin ortalaması (tüketimi bilinen aralıklarda)
   const pay = (i) => (yuk[i] ? (gunes[i] + ruzgar[i]) / yuk[i] : 0);
   let en = 0, rgToplam = 0, yukToplam = 0;
@@ -1094,22 +1102,33 @@ function gunesGunuCiz(seri = D.seri) {
   }
   $("gg-manset").textContent = doldur(ARSIV ? t.ggMansetGun : t.ggManset, { p: yuzde(pay(en), 0), s: saatYaz(zaman[en]), o: yukToplam ? yuzde(rgToplam / yukToplam, 0) : "–" });
 
+  // Katmanların üst sınırları, alttan üste
+  const k1 = gunes, k2 = k1.map((v, i) => v + ruzgar[i]), k3 = k2.map((v, i) => v + yerli[i]), k4 = k3.map((v, i) => v + ithal[i]);
   const kap = $("gg-kap");
   const W = Math.max(300, Math.round(kap.clientWidth || 720)), H = W < 520 ? 220 : 260;
   const m = { l: 34, r: 8, t: 8, b: 24 }, pw = W - m.l - m.r, ph = H - m.t - m.b;
-  const enBuyuk = Math.max(...yuk) / 1000, adim = enBuyuk > 60 ? 20 : 10, ust = Math.max(adim, Math.ceil(enBuyuk / adim) * adim);
+  const enBuyuk = Math.max(...yuk, ...k4) / 1000, adim = enBuyuk > 60 ? 20 : 10, ust = Math.max(adim, Math.ceil(enBuyuk / adim) * adim);
   const x = (ms) => m.l + ((ms - zaman[0]) / (zaman[n - 1] - zaman[0])) * pw;
   const y = (mw) => m.t + ph - (mw / 1000 / ust) * ph;
   const svg = svgEl("svg", { viewBox: `0 0 ${W} ${H}`, class: "grafik", role: "img", "aria-label": t.ggBaslik + ". " + $("gg-manset").textContent });
+  // İthal kömür deseni: kahverengi çapraz çizgiler, altta aynı rengin açığı (lejanttaki .tarali ile aynı)
+  const desen = svgEl("pattern", { id: "gg-ithal-desen", patternUnits: "userSpaceOnUse", width: 4, height: 4, patternTransform: "rotate(45)" }, svgEl("defs", {}, svg));
+  svgEl("rect", { width: 4, height: 4, style: "fill:var(--g-komur);fill-opacity:.3" }, desen);
+  svgEl("rect", { width: 2, height: 4, style: "fill:var(--g-komur)" }, desen);
   for (let gw = 0; gw <= ust; gw += adim) {
     svgEl("line", { x1: m.l, x2: W - m.r, y1: y(gw * 1000), y2: y(gw * 1000), stroke: gw ? "var(--grid)" : "var(--axis)", "stroke-width": 1, "shape-rendering": "crispEdges" }, svg);
     svgEl("text", { x: m.l - 6, y: y(gw * 1000) + 4, "text-anchor": "end" }, svg).textContent = sayi(gw);
   }
-  const alan = (ust, alt) => "M" + zaman.map((z, i) => `${x(z)},${y(ust[i])}`).join("L") + "L" + zaman.map((z, i) => `${x(z)},${y(alt[i])}`).reverse().join("L") + "Z";
-  const rgUst = ruzgar.map((r, i) => r + gunes[i]);
-  svgEl("path", { d: alan(ruzgar, zaman.map(() => 0)), style: "fill:var(--g-ruzgar);fill-opacity:.55" }, svg);
-  svgEl("path", { d: alan(rgUst, ruzgar), style: "fill:var(--g-gunes);fill-opacity:.55" }, svg);
-  svgEl("path", { d: "M" + zaman.map((z, i) => `${x(z)},${y(yuk[i])}`).join("L"), fill: "none", style: "stroke:var(--ink)", "stroke-width": 2, "stroke-linejoin": "round", "stroke-linecap": "round" }, svg);
+  const yol = (seri) => zaman.map((z, i) => `${x(z)},${y(seri[i])}`);
+  const alan = (ust, alt) => "M" + yol(ust).join("L") + "L" + yol(alt).reverse().join("L") + "Z";
+  svgEl("path", { d: alan(k1, zaman.map(() => 0)), style: "fill:var(--g-gunes)" }, svg);
+  svgEl("path", { d: alan(k2, k1), style: "fill:var(--g-ruzgar)" }, svg);
+  svgEl("path", { d: alan(k3, k2), style: "fill:var(--g-komur)" }, svg);
+  svgEl("path", { d: alan(k4, k3), fill: "url(#gg-ithal-desen)" }, svg);
+  // Katmanlar arasında 2 px zemin boşluğu; gece güneş sıfırken boşluk tabana biner, taban çizgisi yeniden çizilir.
+  for (const sinir of [k1, k2, k3]) svgEl("path", { d: "M" + yol(sinir).join("L"), fill: "none", style: "stroke:var(--surface)", "stroke-width": 2, "stroke-linejoin": "round" }, svg);
+  svgEl("line", { x1: m.l, x2: W - m.r, y1: y(0), y2: y(0), stroke: "var(--axis)", "stroke-width": 1, "shape-rendering": "crispEdges" }, svg);
+  svgEl("path", { d: "M" + yol(yuk).join("L"), fill: "none", style: "stroke:var(--ink)", "stroke-width": 2, "stroke-linejoin": "round", "stroke-linecap": "round" }, svg);
   for (let i = 0; i < n; i++) {
     const d = new Date(zaman[i] + TSI_FARK);
     if (d.getUTCMinutes() === 0 && d.getUTCHours() % (W < 460 ? 6 : 3) === 0)
@@ -1119,14 +1138,18 @@ function gunesGunuCiz(seri = D.seri) {
   const imlec = svgEl("line", { class: "imlec", y1: m.t, y2: m.t + ph, visibility: "hidden" }, svg);
   const hedef = svgEl("rect", { class: "hedef", x: m.l, y: m.t, width: pw, height: ph, tabindex: 0, "aria-label": t.ggBaslik }, svg);
   let secili = en;
+  const gw = (mw) => sayi(mw / 1000, 1) + " GW";
   const goster = (i) => {
     secili = i;
     imlec.setAttribute("x1", x(zaman[i])); imlec.setAttribute("x2", x(zaman[i])); imlec.setAttribute("visibility", "visible");
     ipucuYaz(`${saatYaz(zaman[i] - 15 * 60e3)}–${saatYaz(zaman[i])}`, [
-      { renk: "var(--ink)", deger: sayi(yuk[i] / 1000, 1) + " GW", ad: t.tuketimAd },
-      { renk: "var(--g-gunes)", deger: sayi(gunes[i] / 1000, 1) + " GW", ad: t.grup.gunes },
-      { renk: "var(--g-ruzgar)", deger: sayi(ruzgar[i] / 1000, 1) + " GW", ad: t.grup.ruzgar },
+      { renk: "var(--ink)", deger: gw(yuk[i]), ad: t.tuketimAd },
+      { renk: "var(--g-gunes)", deger: gw(gunes[i]), ad: t.grup.gunes },
+      { renk: "var(--g-ruzgar)", deger: gw(ruzgar[i]), ad: t.grup.ruzgar },
+      { renk: "var(--g-komur)", deger: gw(yerli[i]), ad: t.yerliKomurAd },
+      { anahtar: "tarali", deger: gw(ithal[i]), ad: t.ithalKomurAd },
       { deger: yuk[i] ? yuzde((gunes[i] + ruzgar[i]) / yuk[i], 0) : "–", ad: t.rgPayAd, sinif: "toplam" },
+      { deger: yuk[i] ? yuzde((yerli[i] + ithal[i]) / yuk[i], 0) : "–", ad: t.komurPayAd },
     ]);
     const b = svg.getBoundingClientRect();
     ipucuGoster(b.left + x(zaman[i]) * (b.width / W), b.top + b.height / 2);
@@ -1353,8 +1376,15 @@ async function grafikPng(kap, baslik, lejant, kaynak = T().pngKaynak) {
   for (const li of lejant.querySelectorAll("li")) {
     const anahtar = li.firstElementChild, ad = li.lastElementChild.textContent;
     const st = getComputedStyle(anahtar), tur = anahtar.className;
-    x.fillStyle = tur === "kesik" ? st.color : st.backgroundColor;
-    if (tur === "kesik") for (let i = 0; i < 3; i++) x.fillRect(lx + i * 6, 57, 4, 2);
+    x.fillStyle = tur === "kesik" || anahtar.classList.contains("tarali") ? st.color : st.backgroundColor;
+    if (anahtar.classList.contains("tarali")) { // açık zemin üstünde çapraz çizgiler, sayfadaki desenle aynı
+      x.save(); x.beginPath(); x.rect(lx, 52, 10, 10); x.clip();
+      x.globalAlpha = 0.3; x.fillRect(lx, 52, 10, 10); x.globalAlpha = 1;
+      x.strokeStyle = st.color; x.lineWidth = 2;
+      for (let d = -12; d <= 12; d += 4 * Math.SQRT2) { x.beginPath(); x.moveTo(lx + d, 62); x.lineTo(lx + d + 10, 52); x.stroke(); }
+      x.restore();
+    }
+    else if (tur === "kesik") for (let i = 0; i < 3; i++) x.fillRect(lx + i * 6, 57, 4, 2);
     else if (tur === "daire") { x.beginPath(); x.arc(lx + 5, 57, 4.5, 0, 2 * Math.PI); x.fill(); }
     else if (tur === "cizgi") x.fillRect(lx, 57, 14, 2);
     else x.fillRect(lx, 52, 10, 10);
