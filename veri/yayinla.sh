@@ -10,4 +10,11 @@ echo "== $(date '+%Y-%m-%d %H:%M:%S')"
 git add data
 if git diff --cached --quiet; then echo "değişiklik yok"; exit 0; fi
 git commit -q -m "Veri: $(TZ=Europe/Istanbul date '+%Y-%m-%d %H:%M')"
-git pull -q --rebase origin main && git push -q origin main && echo "gönderildi"
+if ! git pull -q --rebase --autostash origin main; then
+    # Telefon da gönderiyorsa veri dosyaları çakışabilir: yerel veri kaydı bırakılır, depodaki daha
+    # yeni veri alınır, bir sonraki turda yeniden üretilir. Kaydedilmemiş yerel düzenlemeler korunur.
+    git rebase --abort 2>/dev/null
+    git reset -q --keep origin/main && echo "çakışma: depodaki veri alındı"
+    exit 0
+fi
+git push -q origin main && echo "gönderildi"

@@ -59,6 +59,39 @@ otomatik uyumayı önle" açık, kapak açık ve adaptöre takılı. Veri 3,5 sa
 "Veri gecikmeli" der; sayaçlar en fazla 3 saat ileri gider. Her an açık bir makine için
 Türkiye'de küçük bir sunucu ya da evde sürekli açık bir bilgisayar aynı iki dosyayla çalışır.
 
+## 2b) Telefon (Android, Termux): Mac kapalıyken
+
+Aynı iş telefonda `veri/telefon.sh` ile yapılır: her 07, 22, 37 ve 52. dakikada depodaki son hali
+alır, veriyi çeker, gönderir. Telefon Türkiye'de ve internette olmalı (günde yaklaşık 50 MB).
+
+1. **Termux'u kurun:** F-Droid'den (https://f-droid.org/packages/com.termux/) ya da
+   https://github.com/termux/termux-app/releases adresinden. Play Store sürümü önerilmez.
+2. **Termux'u açıp şunu yapıştırın** (paketler, GitHub girişi, depo; birkaç dakika sürer):
+
+```bash
+curl -fsSLo kur.sh https://raw.githubusercontent.com/bsgumus/cop31antalya/main/veri/termux_kur.sh && bash kur.sh
+```
+
+   GitHub girişinde ekranda bir kod çıkar: https://github.com/login/device adresinde girip onaylayın.
+3. **Başlatın** (Termux açık kalsın; bildirimde "1 session" görünür, ekran kapanabilir):
+
+```bash
+bash ~/cop31antalya/veri/telefon.sh
+```
+
+4. **Android ayarı:** Ayarlar → Uygulamalar → Termux → Pil kullanımı → **Kısıtlamasız**.
+   Telefon mümkünse şarjda kalsın. Termux kapatılır ya da telefon yeniden başlarsa 3. adımı
+   tekrarlayın.
+
+Telefon çalışırken Mac'teki görevi kapatmak yeterli (ikisi aynı anda gönderirse kaybeden
+bir sonraki turu bekler, veri bozulmaz):
+
+```bash
+launchctl bootout gui/$(id -u)/com.cop31antalya.veri
+```
+
+Mac'e geri dönmek için 2. bölümdeki kurulum komutu yeniden çalıştırılır.
+
 ## 3) Alan adları
 
 **Ana adres cop31antalya.org** (6 Kasım'da .com'dan değiştirildi: .org'un sertifikası dakikalar
