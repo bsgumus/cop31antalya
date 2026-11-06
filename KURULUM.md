@@ -95,6 +95,12 @@ launchctl bootout gui/$(id -u)/com.cop31antalya.veri
 
 Mac'e geri dönmek için 2. bölümdeki kurulum komutu yeniden çalıştırılır.
 
+**Tur aralığı:** varsayılan 15 dakika (07, 22, 37, 52). Pil ya da veri için seyrekleştirmek:
+`ARALIK=30 bash ~/cop31antalya/veri/telefon.sh` (15, 20, 30 ya da 60). TEİAŞ 15 dakikalık veri
+yayımladığı ve site 75 dakika beklediği için 15'ten sık çalıştırmak yeni bir şey getirmez. Sayfadaki
+son veri gecikmesi aşağı yukarı 75 dakika + aralık; 3,5 saati geçince "Veri gecikmeli" yazdığından
+60 dakikadan seyrek önerilmez. Bir tur yaklaşık 150–200 KB indirir (15 dakikada bir: günde ~15–20 MB).
+
 ## 3) Alan adları
 
 **Ana adres cop31antalya.org** (6 Kasım'da .com'dan değiştirildi: .org'un sertifikası dakikalar

@@ -4,8 +4,11 @@
 # olmalı: TEİAŞ yalnız Türkiye'den erişilebiliyor. Kurulum: veri/termux_kur.sh (KURULUM.md).
 #
 #   bash ~/cop31antalya/veri/telefon.sh            sürekli çalışır (Termux açık kalsın)
+#   ARALIK=30 bash ~/cop31antalya/veri/telefon.sh  30 dakikada bir (15, 20, 30 ya da 60; varsayılan 15)
 #   TEK_SEFER=1 GONDERME=1 bash veri/telefon.sh    bir kez çalışır, göndermez (deneme)
 cd "$(dirname "$0")/.." || exit 1
+ARALIK=${ARALIK:-15}
+case "$ARALIK" in 15|20|30|60) ;; *) echo "ARALIK 15, 20, 30 ya da 60 olmalı"; exit 1 ;; esac
 command -v termux-wake-lock >/dev/null && termux-wake-lock   # ekran kapalıyken de çalışsın
 
 tur() {
@@ -19,10 +22,10 @@ tur() {
     git push -q origin HEAD:main && echo "gönderildi"
 }
 
-bekle() {  # bir sonraki 07, 22, 37 ya da 52. dakikaya kadar saniye
+bekle() {  # bir sonraki tura (saatin 07. dakikasından başlayıp ARALIK dakikada bir) kadar saniye
     local m s t
     m=$((10#$(date +%M))); s=$((10#$(date +%S)))
-    for t in 7 22 37 52 67; do [ "$t" -gt "$m" ] && break; done
+    t=7; while [ "$t" -le "$m" ]; do t=$((t + ARALIK)); done
     echo $(( (t - m) * 60 - s ))
 }
 
