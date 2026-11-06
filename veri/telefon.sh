@@ -9,11 +9,18 @@
 cd "$(dirname "$0")/.." || exit 1
 ARALIK=${ARALIK:-15}
 case "$ARALIK" in 15|20|30|60) ;; *) echo "ARALIK 15, 20, 30 ya da 60 olmalı"; exit 1 ;; esac
+export ARALIK
+BETIK=veri/telefon.sh
+SURUM=$(cksum < "$BETIK")   # depoda betik değişirse yeni sürümle kendini yeniden başlatır
 command -v termux-wake-lock >/dev/null && termux-wake-lock   # ekran kapalıyken de çalışsın
 
 tur() {
     # Her tur depodaki son halden başlar: Mac de gönderiyorsa çakışma olmaz, kaybeden bir sonraki turu bekler.
     git fetch -q --depth 1 origin main && git reset -q --hard origin/main || return 1
+    if [ "$(cksum < "$BETIK")" != "$SURUM" ]; then
+        echo "betik güncellendi, yeni sürümle yeniden başlıyor"
+        exec bash "$BETIK"
+    fi
     python3 veri/guncelle.py   # bugünün verisi alınamasa da fiyat ve özet güncellenmiş olabilir
     git add data
     if git diff --cached --quiet; then echo "değişiklik yok"; return 0; fi
